@@ -216,12 +216,7 @@ def SampleUSStdAtmosphere(Z):
 altitudes = np.arange(0,86.0,1.0)*1e3 # [m]
 
 # Hit the Amentum Atmosphere API to calculate total mass density according to NRLMSISE-00
-hostname = "https://developer.amentum.space/atmosphere/api/sample_atmosphere"
-
-# include the API key in the request header 
-headers = {
-  'Authorization' : os.environ['AMENTUMAPIKEY']
-}
+hostname = "https://atmosphere.amentum.space/api/sample_atmosphere"
 
 # assume midnight at Greenwich, arbitrary date
 payload = {
@@ -244,7 +239,7 @@ for alt in altitudes:
     # Update altitude dict entry
     payload["altitude"] = alt/1e3 # km
     try:
-        response = requests.get(hostname, params=payload, headers=headers)
+        response = requests.get(hostname, params=payload)
     except requests.exceptions.RequestException as e:
         print(e)
         raise KeyboardInterrupt

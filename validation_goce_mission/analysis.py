@@ -140,11 +140,7 @@ df_goce['f107a'] = [
 
 # Calculate NRLMSISE-00 model densities using the API
 
-hostname = "https://developer.amentum.space/atmosphere/api/sample_atmosphere"
-# Include the API key in the request header 
-headers = {
-    'Authorization' : os.environ["AMENTUMAPIKEY"]
-}
+hostname = "https://atmosphere.amentum.space/api/sample_atmosphere"
 
 def fetch_density_from_api(row):
     """
@@ -172,7 +168,7 @@ def fetch_density_from_api(row):
     }
     # Boom, hit it! Then return the JSONs
     try:
-        response = requests.get(hostname, params=payload, headers=headers)
+        response = requests.get(hostname, params=payload)
     except requests.exceptions.RequestException as e:
         print(e)
         raise KeyboardInterrupt
@@ -185,7 +181,6 @@ res = df_goce.apply(fetch_density_from_api, axis=1)
 # Convert from g/cm3 to kg/m3
 df_goce['api_density'] = [
     row['total_mass']['value'] * 1e-3 * 1e6 for row in res.values]
-
 
 # Prepare data for plotting
 
