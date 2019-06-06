@@ -16,14 +16,6 @@ See the analysis.py script in each directory to see how the Amentum Atmosphere A
 
 Then install the necessary Python packages included in the first few lines of the script using your Python package manager.
 
-Set the following environment variable to store your API key. Assuming you are using bash shell, this will be:
-
-    export AMENTUMAPIKEY=<your key>
-
-Alternatively you can hard code it in the Python code.
-
-If you do not have an API key, you can signup for a free one [here](https://developer.amentum.space/portal/) 
-
 Then run the script using the following command:
 
     python analysis.py 
