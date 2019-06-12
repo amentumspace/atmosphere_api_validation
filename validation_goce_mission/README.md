@@ -24,6 +24,6 @@ Figure 2: Density profile for an argument of latitude of 175 degrees for June 20
 
 See [here](https://earth.esa.int/web/guest/missions/esa-operational-missions/goce/goce-thermospheric-data ) for GOCE thermospheric density data used in this study, 
 
-[here](ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/) for geomagnetic indices, and 
+[ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/](ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/) for geomagnetic indices, and 
 
-[here](ftp://ftp.swpc.noaa.gov/pub/warehouse) for radio flux data.
+[ftp://ftp.swpc.noaa.gov/pub/warehouse](ftp://ftp.swpc.noaa.gov/pub/warehouse) for radio flux data.
