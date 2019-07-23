@@ -190,12 +190,12 @@ def SampleUSStdAtmosphere(Z):
     # identify which layer we're in , search in reverse order
     for layer in layers[::-1]:
         if Z >= layer['altitude']:
-            print(f"altitude {Z} is in layer {layer['name']}")
+            print("altitude {} is in layer {}".format(Z, layer['name']))
             current_layer = layer 
             break 
     
     if current_layer is None : 
-        raise ValueError(f"Did not find layer for altitude {Z} m")
+        raise ValueError("Did not find layer for altitude {} m".format(Z))
 
     # calculate geopotential height different 
     delta_H = CalcGeopotentialHeight(Z) - layer["geopotential"]

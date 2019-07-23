@@ -260,7 +260,7 @@ cb = fig_cont.colorbar(cs1, ax=list((ax_goce,ax_api)), format='%3.1e')
 
 cb.set_label("Density "+r"$kgm^{-3}$")
 
-fig_cont.savefig(f"Density_GOCE_vs_NRLMSISE-00.png")
+fig_cont.savefig("Density_GOCE_vs_NRLMSISE-00.png")
 
 # Now plot the profiles for a particular argument latitude
 
@@ -300,4 +300,4 @@ ax_prof.legend()
 
 fig_prof.suptitle("Argument of latitude {0:.2f} deg".format(arg_lat_of_interest), fontsize=12)
 
-fig_prof.savefig(f"Density_vs_day_AOL{int(arg_lat_of_interest)}.png")
+fig_prof.savefig("Density_vs_day_AOL{}.png".format(int(arg_lat_of_interest)))
