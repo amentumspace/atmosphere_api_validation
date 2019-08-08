@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
@@ -5,6 +6,17 @@ import os
 import pandas as pd
 import requests
 from scipy import stats
+
+# Obtain the hostname via command line argument (for on-premises deployment)
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--hostname",
+    dest="hostname",
+    action="store",
+    help="specify an alternative hostname for testing (e.g. on-premises server)",
+    default="https://atmosphere.amentum.space",
+)
+args = parser.parse_args()
 
 # Read the GOCE data file into dataframe
 df_goce = pd.read_csv(
@@ -140,7 +152,7 @@ df_goce['f107a'] = [
 
 # Calculate NRLMSISE-00 model densities using the API
 
-hostname = "https://atmosphere.amentum.space/api/sample_atmosphere"
+endpoint = args.hostname + "/api/nrlmsise00"
 
 def fetch_density_from_api(row):
     """
@@ -168,7 +180,7 @@ def fetch_density_from_api(row):
     }
     # Boom, hit it! Then return the JSONs
     try:
-        response = requests.get(hostname, params=payload)
+        response = requests.get(endpoint, params=payload)
     except requests.exceptions.RequestException as e:
         print(e)
         raise KeyboardInterrupt
