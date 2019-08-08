@@ -4,7 +4,7 @@ The US Standard Atmosphere is a model that describes the variation of temperatur
 
 The model separates the atmosphere into regions with linear, or constant, temperature variation with geopotential altitude. The geopotential altitude accounts for the variation of acceleration due to gravity with geometric height. The variation of pressure with geopotential altitude is calculated by solving the hydrostatic equation. The density is calculated assuming an ideal gas law. 
 
-Herein we implement the US Standard Atmosphere 1976 up to a geometric altitude of 86 km in Python code, and benchmarking against predictions from the NRLMSISE-00 obtained with the Amentum API.
+Herein we implement the US Standard Atmosphere 1976 up to a geometric altitude of 86 km in Python code. We benchmark temperature and density values predicted by NRLMSISE-00, as obtained with the Amentum API, to values predicted by the US Standard Atmosphere.
 
 More information on the US Standard Atmosphere can be found in the original technical report [here](https://ntrs.nasa.gov/search.jsp?R=19770009539). 
 
