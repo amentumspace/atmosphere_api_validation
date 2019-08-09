@@ -73,9 +73,11 @@ start_day = 2
 stop_day = 30
 month = 6
 year = 2013
+start_date = datetime.datetime(year, month, start_day)
+stop_date = datetime.datetime(year, month, stop_day)
 df_goce = df_goce[
-    (df_goce["datetime"] >= datetime.datetime(year, month, start_day))
-    & (df_goce["datetime"] < datetime.datetime(year, month, stop_day))
+    (df_goce["datetime"] >= start_date)
+    & (df_goce["datetime"] < stop_date)
 ]
 
 # Reduce the dataset by only keeping every N-th sample
@@ -266,12 +268,29 @@ time_deltas = df_goce["datetime"].values - df_goce["datetime"].values.min()
 # Convert time_deltas to seconds, will also convert to float type
 time_deltas = [t / np.timedelta64(1, "s") for t in time_deltas]
 
-# Create linear bins for time deltas and argument of latitudes
-tds = np.linspace(min(time_deltas), max(time_deltas), 20)
+# limits for binning of timestamp and arg of lat
 
+# NOTE this was optimised to ensure sufficient bin widths such that at least a data 
+# point per bin with sufficiently sparse GOCE data to ensure daily API quote not exceeded 
+# for users. Resolution can be improved for staging and on-premises deployments. 
+time_delta_low = 0
+time_delta_high = (stop_date - start_date).total_seconds()
+
+# Create linear bins for time delta data points 
+tds = np.linspace(min(time_deltas), max(time_deltas), 20)
+# go for daily bins. 
+seconds_per_hour = 60 * 60 
+seconds_per_day = 60 * 60 * 24 
+# bin to ensure final edge is considered
+tds = np.arange(time_delta_low, time_delta_high+seconds_per_day*2, seconds_per_day*2)
+
+# same for arg lats
 arg_lats = np.linspace(
     df_goce["argument_latitude"].min(), df_goce["argument_latitude"].max(), 20
 )
+
+arg_lat_delta = 10 # degree
+arg_lats = np.arange(0,360+arg_lat_delta,arg_lat_delta)
 
 # Calculate the densities as mean values lying within 2d grid of bins
 densities = stats.binned_statistic_2d(
@@ -340,12 +359,12 @@ ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
 
 midlat_index = np.searchsorted(arg_lats, 180)
 
-arg_lat_of_interest = arg_lats[midlat_index - 1]
+arg_lat_of_interest = arg_lats[midlat_index]
 
-ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index - 1, :], label="GOCE")
+ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index, :], label="GOCE")
 
 ax_prof.plot(
-    tds[:-1], densities_api.statistic.T[midlat_index - 1, :], label="NRLMSISE-00"
+    tds[:-1], densities_api.statistic.T[midlat_index, :], label="NRLMSISE-00"
 )
 
 labels = [item.get_text() for item in ax_prof.get_xticklabels()]
@@ -357,7 +376,6 @@ def format_func(value, tick_number):
     day of date.
     
     """
-    seconds_per_day = 24 * 60 * 60
     return start_day + int(value / seconds_per_day)
 
 
