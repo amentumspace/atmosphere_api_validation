@@ -8,6 +8,12 @@ Herein we implement the US Standard Atmosphere 1976 up to a geometric altitude o
 
 More information on the US Standard Atmosphere can be found in the original technical report [here](https://ntrs.nasa.gov/search.jsp?R=19770009539). 
 
+# Development environment
+
+You can install the required Python packages using pip like so
+
+    pip install -r requirements.txt 
+
 # Results
 
 ![](./air_temperature_profile.png)

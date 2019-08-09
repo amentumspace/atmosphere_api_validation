@@ -10,6 +10,12 @@ The following study validates the NRLMSISE-00 model and the Amentum API by compa
 
 More information on the mission can be found [here](https://earth.esa.int/web/guest/missions/esa-eo-missions/goce/mission-summary). 
 
+# Development environment
+
+You can install the required Python packages using pip like so
+
+    pip install -r requirements.txt 
+    
 # Results
 
 ![](./Density_GOCE_vs_NRLMSISE-00.png)
