@@ -82,7 +82,7 @@ df_goce = df_goce[
 
 # Reduce the dataset by only keeping every N-th sample
 # reduces the number of API calls
-reduction_factor = 250
+reduction_factor = 500
 df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Create geomagnetic indices lookup dataframe for the month
@@ -211,12 +211,7 @@ df_goce["f107a"] = [
     for dt in df_goce.datetime.values
 ]
 
-# Calculate NRLMSISE-00 model densities using the API
-
-endpoint = args.hostname + "/api/nrlmsise00"
-
-
-def fetch_density_from_api(row):
+def fetch_density_from_api(row, url):
     """
     Make an API call to sample the atmospheric density using the 
     NRLMSISE-00 model. 
@@ -227,46 +222,35 @@ def fetch_density_from_api(row):
     
     """
     # Hit the Amentum Atmosphere API to calculate total mass density
-    # according to NRLMSISE-00
+    # according to NRLMSISE-00 and JB2008 endpoints
+    # params common to both
+
     payload = {
         "altitude": row["altitude"] / 1000.0,  # convert to kms
         "geodetic_latitude": row["latitude"],
         "geodetic_longitude": row["longitude"],
-        "f107a": row["f107a"],
-        "f107": row["f107"],
-        "ap": row["Ap"],
-        "year": row["datetime"].year,
-        "month": row["datetime"].month,
-        "day": row["datetime"].day,
+        "year" : row["datetime"].year,
+        "month" : row["datetime"].month,
+        "day" : row["datetime"].day,
         "utc": row["datetime"].hour
         + row["datetime"].minute / 60,  # TODO this must be decimal
     }
+    # additional required for the nrl one
+    if "nrlmsise00" in url:
+        payload.update({
+            "f107a": row["f107a"],
+            "f107": row["f107"],
+            "ap": row["Ap"]
+        })
+
     # Boom, hit it! Then return the JSONs
     try:
-        response = requests.get(endpoint, params=payload)
+        response = requests.get(url, params=payload)
     except requests.exceptions.RequestException as e:
         print(e)
         raise KeyboardInterrupt
     else:
         return response.json()
-
-print("WARNING: making {} requests from the Amentum API, may exceed daily quota".format(len(df_goce)))
-
-# Apply the function call onto each row of the dataframe
-res = df_goce.apply(fetch_density_from_api, axis=1)
-
-# Convert from g/cm3 to kg/m3
-df_goce["api_density"] = [row["total_mass"]["value"] * 1e-3 * 1e6 for row in res.values]
-
-# Prepare data for plotting
-
-# Convert datetimes to delta since first measurements
-# This will be used for the binning and plotting
-# (avoids using datetime objects)
-time_deltas = df_goce["datetime"].values - df_goce["datetime"].values.min()
-
-# Convert time_deltas to seconds, will also convert to float type
-time_deltas = [t / np.timedelta64(1, "s") for t in time_deltas]
 
 # limits for binning of timestamp and arg of lat
 
@@ -276,21 +260,22 @@ time_deltas = [t / np.timedelta64(1, "s") for t in time_deltas]
 time_delta_low = 0
 time_delta_high = (stop_date - start_date).total_seconds()
 
-# Create linear bins for time delta data points 
-tds = np.linspace(min(time_deltas), max(time_deltas), 20)
 # go for daily bins. 
 seconds_per_hour = 60 * 60 
 seconds_per_day = 60 * 60 * 24 
 # bin to ensure final edge is considered
 tds = np.arange(time_delta_low, time_delta_high+seconds_per_day*2, seconds_per_day*2)
 
-# same for arg lats
-arg_lats = np.linspace(
-    df_goce["argument_latitude"].min(), df_goce["argument_latitude"].max(), 20
-)
-
 arg_lat_delta = 10 # degree
 arg_lats = np.arange(0,360+arg_lat_delta,arg_lat_delta)
+
+# Convert datetimes to delta since first measurements
+# This will be used for the binning and plotting
+# (avoids using datetime objects)
+time_deltas = df_goce["datetime"].values - df_goce["datetime"].values.min()
+
+# Convert time_deltas to seconds, will also convert to float type
+time_deltas = [t / np.timedelta64(1, "s") for t in time_deltas]
 
 # Calculate the densities as mean values lying within 2d grid of bins
 densities = stats.binned_statistic_2d(
@@ -301,90 +286,106 @@ densities = stats.binned_statistic_2d(
     bins=(tds, arg_lats),
 )
 
-densities_api = stats.binned_statistic_2d(
-    time_deltas,
-    df_goce["argument_latitude"].values,
-    df_goce["api_density"].values,
-    statistic="mean",
-    bins=(tds, arg_lats),
-)
+# Calculate NRLMSISE-00 model densities using the API
 
-fig_cont, (ax_goce, ax_api) = plt.subplots(nrows=2, sharex=True)
-fig_cont.suptitle("GOCE (top) vs NRLMSISE-00 (bottom)")
+for endpoint in ["nrlmsise00", "jb2008"]:
 
-cs0 = ax_goce.imshow(
-    densities.statistic.T,
-    extent=(start_day, stop_day, arg_lats.min(), arg_lats.max()),
-    origin="lower",
-    aspect="auto",
-    cmap=plt.cm.jet,
-    vmin=df_goce["density"].values.min(),
-    vmax=df_goce["density"].values.max(),
-)
+    url = args.hostname + "/api/" + endpoint
 
-cs1 = ax_api.imshow(
-    densities_api.statistic.T,
-    extent=(start_day, stop_day, arg_lats.min(), arg_lats.max()),
-    origin="lower",
-    aspect="auto",
-    cmap=plt.cm.jet,
-    vmin=df_goce["density"].values.min(),
-    vmax=df_goce["density"].values.max(),
-)
+    print("WARNING: {} requests to Amentum API, may exceed quota".format(len(df_goce)))
 
-for ax in [ax_goce, ax_api]:
-    # Fetch the labels for the api sourced data
-    ax.set_ylabel("Argument of Latitude, deg")
-    ax.set_yticks(np.arange(0, 360, 90))
-    ax.set_xticks(np.arange(start_day, stop_day, 5))
+    # Apply the function call onto each row of the dataframe
+    res = df_goce.apply(fetch_density_from_api, args=(url,), axis=1)
 
-# Set x labels on bottom plot only
-ax_api.set_xlabel(datetime.date(year, month, 1).strftime("%B %Y"))
+    # Convert from g/cm3 to kg/m3
+    df_goce[endpoint] = [row["total_mass"]["value"] * 1e-3 * 1e6 for row in res.values]
 
-# Format colorbar axis
-cb = fig_cont.colorbar(cs1, ax=list((ax_goce, ax_api)), format="%3.1e")
+    # Prepare data for plotting
+    densities_api = stats.binned_statistic_2d(
+        time_deltas,
+        df_goce["argument_latitude"].values,
+        df_goce[endpoint].values,
+        statistic="mean",
+        bins=(tds, arg_lats),
+    )
 
-cb.set_label("Density " + r"$kgm^{-3}$")
+    fig_cont, (ax_goce, ax_api) = plt.subplots(nrows=2, sharex=True)
+    fig_cont.suptitle("GOCE (top) vs "+endpoint.upper()+" (bottom)")
 
-fig_cont.savefig("Density_GOCE_vs_NRLMSISE-00.png")
+    cs0 = ax_goce.imshow(
+        densities.statistic.T,
+        extent=(start_day, stop_day, arg_lats.min(), arg_lats.max()),
+        origin="lower",
+        aspect="auto",
+        cmap=plt.cm.jet,
+        vmin=df_goce["density"].values.min(),
+        vmax=df_goce["density"].values.max(),
+    )
 
-# Now plot the profiles for a particular argument latitude
+    cs1 = ax_api.imshow(
+        densities_api.statistic.T,
+        extent=(start_day, stop_day, arg_lats.min(), arg_lats.max()),
+        origin="lower",
+        aspect="auto",
+        cmap=plt.cm.jet,
+        vmin=df_goce["density"].values.min(),
+        vmax=df_goce["density"].values.max(),
+    )
 
-# TODO functionise this to plot for different arg of lats
+    for ax in [ax_goce, ax_api]:
+        # Fetch the labels for the api sourced data
+        ax.set_ylabel("Argument of Latitude, deg")
+        ax.set_yticks(np.arange(0, 360, 90))
+        ax.set_xticks(np.arange(start_day, stop_day, 5))
 
-fig_prof = plt.figure()
-ax_prof = fig_prof.add_subplot(111)
-ax_prof.set_xlabel(datetime.date(year, month, 1).strftime("%B %Y"))
-ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
+    # Set x labels on bottom plot only
+    ax_api.set_xlabel(datetime.date(year, month, 1).strftime("%B %Y"))
 
-midlat_index = np.searchsorted(arg_lats, 180)
+    # Format colorbar axis
+    cb = fig_cont.colorbar(cs1, ax=list((ax_goce, ax_api)), format="%3.1e")
 
-arg_lat_of_interest = arg_lats[midlat_index]
+    cb.set_label("Density " + r"$kgm^{-3}$")
 
-ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index, :], label="GOCE")
+    fig_cont.savefig("Density_GOCE_vs_{}.png".format(endpoint))
 
-ax_prof.plot(
-    tds[:-1], densities_api.statistic.T[midlat_index, :], label="NRLMSISE-00"
-)
+    # Now plot the profiles for a particular argument latitude
 
-labels = [item.get_text() for item in ax_prof.get_xticklabels()]
+    # TODO functionise this to plot for different arg of lats
+
+    fig_prof = plt.figure()
+    ax_prof = fig_prof.add_subplot(111)
+    ax_prof.set_xlabel(datetime.date(year, month, 1).strftime("%B %Y"))
+    ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
+
+    midlat_index = np.searchsorted(arg_lats, 180)
+
+    arg_lat_of_interest = arg_lats[midlat_index]
+
+    ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index, :], label="GOCE")
+
+    ax_prof.plot(
+        tds[:-1], densities_api.statistic.T[midlat_index, :], label=endpoint.upper()
+    )
+
+    labels = [item.get_text() for item in ax_prof.get_xticklabels()]
 
 
-def format_func(value, tick_number):
-    """
-    Function to convert tick labels from seconds elapsed to 
-    day of date.
-    
-    """
-    return start_day + int(value / seconds_per_day)
+    def format_func(value, tick_number):
+        """
+        Function to convert tick labels from seconds elapsed to 
+        day of date.
+        
+        """
+        return start_day + int(value / seconds_per_day)
 
 
-ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+    ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
 
-ax_prof.legend()
+    ax_prof.legend()
 
-fig_prof.suptitle(
-    "Argument of latitude {0:.2f} deg".format(arg_lat_of_interest), fontsize=12
-)
+    fig_prof.suptitle(
+        "Argument of latitude {0:.2f} deg".format(arg_lat_of_interest), fontsize=12
+    )
 
-fig_prof.savefig("Density_vs_day_AOL{}.png".format(int(arg_lat_of_interest)))
+    fig_prof.savefig("Density_vs_day_AOL_{}_{}.png".format(
+        int(arg_lat_of_interest), endpoint.upper()))

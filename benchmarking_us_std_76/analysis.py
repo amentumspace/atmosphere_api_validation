@@ -301,12 +301,8 @@ if __name__ == "__main__":
             raise KeyboardInterrupt
         else:
             json_payload = response.json()
-            densities_api.append(json_payload["total_mass"]["value"])  # [g/cm3]
+            densities_api.append(json_payload["total_mass"]["value"])  # [kg/m3]
             temps_api.append(json_payload["at_alt_temp"]["value"])  # [K]
-
-    # Convert densities to SI units
-    densities_api = np.array(densities_api) / 1e3  # [kg / cm3]
-    densities_api *= 1e6  # [kg / m3]
 
     # Now calculate values based on the US Standard Atmosphere 1976
 
@@ -324,7 +320,7 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(4.4, 5.6))
     ax = fig.add_subplot(111)
     ax.set_ylabel("Geopotential Altitude [km]")
-    ax.set_xlabel(r"$\rho _{air} \quad [gcm^{-3}]$")
+    ax.set_xlabel(r"$\rho _{air} \quad [kgm^{-3}]$")
 
     ax.semilogx(
         densities,
