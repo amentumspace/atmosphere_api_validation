@@ -214,11 +214,11 @@ df_goce["f107a"] = [
 def fetch_density_from_api(row, url):
     """
     Make an API call to sample the atmospheric density using the 
-    NRLMSISE-00 model. 
+    NRLMSISE-00 or JB2008 model
     
     Args: row of pandas dataframe containing conditions at time of measurement
     Returns:
-        density in g/cm3
+        density in kg/m3
     
     """
     # Hit the Amentum Atmosphere API to calculate total mass density
@@ -228,7 +228,7 @@ def fetch_density_from_api(row, url):
     payload = {
         "altitude": row["altitude"] / 1000.0,  # convert to kms
         "geodetic_latitude": row["latitude"],
-        "geodetic_longitude": row["longitude"],
+        "geodetic_longitude": row["longitude"], 
         "year" : row["datetime"].year,
         "month" : row["datetime"].month,
         "day" : row["datetime"].day,
@@ -297,8 +297,9 @@ for endpoint in ["nrlmsise00", "jb2008"]:
     # Apply the function call onto each row of the dataframe
     res = df_goce.apply(fetch_density_from_api, args=(url,), axis=1)
 
-    # Convert from g/cm3 to kg/m3
-    df_goce[endpoint] = [row["total_mass"]["value"] * 1e-3 * 1e6 for row in res.values]
+    df_goce[endpoint] = [
+        row['total_mass_density']['value'] for row in res.values
+    ]
 
     # Prepare data for plotting
     densities_api = stats.binned_statistic_2d(

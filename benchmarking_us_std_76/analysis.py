@@ -301,7 +301,7 @@ if __name__ == "__main__":
             raise KeyboardInterrupt
         else:
             json_payload = response.json()
-            densities_api.append(json_payload["total_mass"]["value"])  # [kg/m3]
+            densities_api.append(json_payload["total_mass_density"]["value"])  # [kg/m3]
             temps_api.append(json_payload["at_alt_temp"]["value"])  # [K]
 
     # Now calculate values based on the US Standard Atmosphere 1976
