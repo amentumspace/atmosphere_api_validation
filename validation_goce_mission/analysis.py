@@ -18,9 +18,12 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+filename = "goce_denswind_ac082_v2_0_2013-06.txt"
+filename = 'goce_denswind_ac082_v2_0_2011-04.txt'
+
 # Read the GOCE data file into dataframe
 df_goce = pd.read_csv(
-    "goce_denswind_ac082_v2_0_2013-06.txt", sep="\s+", comment="#", header=None
+   filename, sep="\s+", comment="#", header=None
 )
 
 # Name the columns
@@ -71,8 +74,8 @@ df_goce = df_goce.drop(
 # Isolate 2 weeks centred on our date of interest: 15th June 2013
 start_day = 2
 stop_day = 30
-month = 6
-year = 2013
+month = 4
+year = 2011
 start_date = datetime.datetime(year, month, start_day)
 stop_date = datetime.datetime(year, month, stop_day)
 df_goce = df_goce[
@@ -89,7 +92,7 @@ df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Fetch geomagnetic indices from local file for the same year and month
 # One or more space is considered a separator
-df_Kp = pd.read_csv("kp1306.tab", sep="\s+", comment="#", header=None)
+df_Kp = pd.read_csv("kp1104.tab", sep="\s+", comment="#", header=None)
 #
 df_Kp.columns = [
     "date",
@@ -136,7 +139,7 @@ df_goce["Ap"] = [
 # Create radio flux lookup dataframe for the month
 
 # Fetch radio flux data for this year from local file
-df_f107 = pd.read_csv("2013_DSD.txt", sep="\s+", comment="#", header=None)
+df_f107 = pd.read_csv("2011_DSD.txt", sep="\s+", comment="#", header=None)
 
 df_f107.columns = [
     "year",
@@ -286,6 +289,35 @@ densities = stats.binned_statistic_2d(
     bins=(tds, arg_lats),
 )
 
+# initialise the profile plot
+fig_prof = plt.figure()
+ax_prof = fig_prof.add_subplot(111)
+ax_prof.set_xlabel(datetime.date(year, month, 1).strftime("%B %Y"))
+ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
+
+midlat_index = np.searchsorted(arg_lats, 180)
+
+arg_lat_of_interest = arg_lats[midlat_index]
+
+ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index, :], label="GOCE")
+
+
+labels = [item.get_text() for item in ax_prof.get_xticklabels()]
+
+def format_func(value, tick_number):
+    """
+    Function to convert tick labels from seconds elapsed to 
+    day of date.
+    
+    """
+    return start_day + int(value / seconds_per_day)
+
+ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+
+fig_prof.suptitle(
+    "Argument of latitude {0:.2f} deg".format(arg_lat_of_interest), fontsize=12
+)
+
 # Calculate NRLMSISE-00 model densities using the API
 
 for endpoint in ["nrlmsise00", "jb2008"]:
@@ -351,42 +383,11 @@ for endpoint in ["nrlmsise00", "jb2008"]:
 
     # Now plot the profiles for a particular argument latitude
 
-    # TODO functionise this to plot for different arg of lats
-
-    fig_prof = plt.figure()
-    ax_prof = fig_prof.add_subplot(111)
-    ax_prof.set_xlabel(datetime.date(year, month, 1).strftime("%B %Y"))
-    ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
-
-    midlat_index = np.searchsorted(arg_lats, 180)
-
-    arg_lat_of_interest = arg_lats[midlat_index]
-
-    ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index, :], label="GOCE")
-
     ax_prof.plot(
         tds[:-1], densities_api.statistic.T[midlat_index, :], label=endpoint.upper()
     )
 
-    labels = [item.get_text() for item in ax_prof.get_xticklabels()]
 
+ax_prof.legend()
 
-    def format_func(value, tick_number):
-        """
-        Function to convert tick labels from seconds elapsed to 
-        day of date.
-        
-        """
-        return start_day + int(value / seconds_per_day)
-
-
-    ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
-
-    ax_prof.legend()
-
-    fig_prof.suptitle(
-        "Argument of latitude {0:.2f} deg".format(arg_lat_of_interest), fontsize=12
-    )
-
-    fig_prof.savefig("Density_vs_day_AOL_{}_{}.png".format(
-        int(arg_lat_of_interest), endpoint.upper()))
+fig_prof.savefig("Density_vs_API_AOL_{}.png".format(int(arg_lat_of_interest)))
