@@ -80,7 +80,7 @@ df_goce = df_goce[
 
 # Reduce the dataset by only keeping every N-th sample
 # reduces the number of API calls
-reduction_factor = 10
+reduction_factor = 250
 df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Create geomagnetic indices lookup dataframe for the month
@@ -248,6 +248,7 @@ def fetch_density_from_api(row):
     else:
         return response.json()
 
+print("WARNING: making {} requests from the Amentum API, may exceed daily quota".format(len(df_goce)))
 
 # Apply the function call onto each row of the dataframe
 res = df_goce.apply(fetch_density_from_api, axis=1)
@@ -266,10 +267,10 @@ time_deltas = df_goce["datetime"].values - df_goce["datetime"].values.min()
 time_deltas = [t / np.timedelta64(1, "s") for t in time_deltas]
 
 # Create linear bins for time deltas and argument of latitudes
-tds = np.linspace(min(time_deltas), max(time_deltas), 40)
+tds = np.linspace(min(time_deltas), max(time_deltas), 20)
 
 arg_lats = np.linspace(
-    df_goce["argument_latitude"].min(), df_goce["argument_latitude"].max(), 40
+    df_goce["argument_latitude"].min(), df_goce["argument_latitude"].max(), 20
 )
 
 # Calculate the densities as mean values lying within 2d grid of bins
@@ -289,7 +290,6 @@ densities_api = stats.binned_statistic_2d(
     bins=(tds, arg_lats),
 )
 
-# TODO Creat the Figures with captions at top of report, BLUF approach
 fig_cont, (ax_goce, ax_api) = plt.subplots(nrows=2, sharex=True)
 fig_cont.suptitle("GOCE (top) vs NRLMSISE-00 (bottom)")
 

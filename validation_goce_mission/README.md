@@ -6,7 +6,7 @@ The mission objectives demanded an unusually low altitude orbit with an electric
 
 GOCE's instruments also provided the world with valuable insights into the density and winds of the atmosphere. 
 
-The following study validates the NRLMSISE-00 model and the Amentum API by comparing results of API calls with experimental data obtained during the GOCE mission. 
+The following study validates the NRLMSISE-00 and JB2008 endpoints of the Amentum API by comparing results of API calls with experimental data obtained during the GOCE mission. 
 
 More information on the mission can be found [here](https://earth.esa.int/web/guest/missions/esa-eo-missions/goce/mission-summary). 
 
@@ -19,6 +19,7 @@ You can install the required Python packages using pip like so
 # Results
 
 ![](./Density_GOCE_vs_NRLMSISE-00.png)
+![](./Density_GOCE_vs_JB2008.png)
 
 Figure 1: Thermospheric density distributions for June 2013
 
