@@ -7,6 +7,14 @@ import pandas as pd
 import requests
 from scipy import stats
 
+"""
+
+Plotting 1 week of GOCE data for nominated year, month, day
+Comparing with atmospheric density with that predicted by NRLMSISE00 and 
+JB2008 models accessed via the Amentum Aerospace API
+
+"""
+
 # Obtain the hostname via command line argument (for on-premises deployment)
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -16,8 +24,27 @@ parser.add_argument(
     help="specify an alternative hostname for testing (e.g. on-premises server)",
     default="https://atmosphere.amentum.space",
 )
+parser.add_argument(
+    '--start_date', 
+    type=lambda s: datetime.datetime.strptime(s, '%Y%m%d'),
+    dest="start_date",
+    help="specify the start date for the analysis",
+    default="20130605"
+)
+parser.add_argument(
+    '--goce_dir',
+    dest="goce_dir",
+    action="store",
+    help="specify path to directory containing extracted goce data archive",
+    default="./"
+)
+
 args = parser.parse_args()
 
+
+
+
+# TODO construct filename from year and month of interest
 filename = "goce_denswind_ac082_v2_0_2013-06.txt"
 filename = 'goce_denswind_ac082_v2_0_2011-04.txt'
 
@@ -71,9 +98,9 @@ df_goce = df_goce.drop(
     ]
 )
 
-# Isolate 2 weeks centred on our date of interest: 15th June 2013
+# Isolate 1 week 
 start_day = 2
-stop_day = 30
+stop_day = 29
 month = 4
 year = 2011
 start_date = datetime.datetime(year, month, start_day)
@@ -85,7 +112,7 @@ df_goce = df_goce[
 
 # Reduce the dataset by only keeping every N-th sample
 # reduces the number of API calls
-reduction_factor = 500
+reduction_factor = 100
 df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Create geomagnetic indices lookup dataframe for the month
@@ -224,10 +251,7 @@ def fetch_density_from_api(row, url):
         density in kg/m3
     
     """
-    # Hit the Amentum Atmosphere API to calculate total mass density
-    # according to NRLMSISE-00 and JB2008 endpoints
     # params common to both
-
     payload = {
         "altitude": row["altitude"] / 1000.0,  # convert to kms
         "geodetic_latitude": row["latitude"],
@@ -236,9 +260,9 @@ def fetch_density_from_api(row, url):
         "month" : row["datetime"].month,
         "day" : row["datetime"].day,
         "utc": row["datetime"].hour
-        + row["datetime"].minute / 60,  # TODO this must be decimal
+        + row["datetime"].minute / 60, # decimal UTC hour
     }
-    # additional required for the nrl one
+    # additional params required for the nrl endpoint
     if "nrlmsise00" in url:
         payload.update({
             "f107a": row["f107a"],
@@ -263,13 +287,13 @@ def fetch_density_from_api(row, url):
 time_delta_low = 0
 time_delta_high = (stop_date - start_date).total_seconds()
 
-# go for daily bins. 
+# go for hourly or daily bins. 
 seconds_per_hour = 60 * 60 
 seconds_per_day = 60 * 60 * 24 
 # bin to ensure final edge is considered
-tds = np.arange(time_delta_low, time_delta_high+seconds_per_day*2, seconds_per_day*2)
+tds = np.arange(time_delta_low, time_delta_high+seconds_per_day, seconds_per_day)
 
-arg_lat_delta = 10 # degree
+arg_lat_delta = 10 # argument of latitude resolution in degrees
 arg_lats = np.arange(0,360+arg_lat_delta,arg_lat_delta)
 
 # Convert datetimes to delta since first measurements
@@ -278,9 +302,9 @@ arg_lats = np.arange(0,360+arg_lat_delta,arg_lat_delta)
 time_deltas = df_goce["datetime"].values - df_goce["datetime"].values.min()
 
 # Convert time_deltas to seconds, will also convert to float type
-time_deltas = [t / np.timedelta64(1, "s") for t in time_deltas]
+time_deltas = [t / np.timedelta64(1, 's') for t in time_deltas]
 
-# Calculate the densities as mean values lying within 2d grid of bins
+# Calculate the GOCE densities as mean values lying within 2d grid of bins
 densities = stats.binned_statistic_2d(
     time_deltas,
     df_goce["argument_latitude"].values,
@@ -333,7 +357,7 @@ for endpoint in ["nrlmsise00", "jb2008"]:
         row['total_mass_density']['value'] for row in res.values
     ]
 
-    # Prepare data for plotting
+    # Prepare 2D API density data for plotting
     densities_api = stats.binned_statistic_2d(
         time_deltas,
         df_goce["argument_latitude"].values,
@@ -382,11 +406,9 @@ for endpoint in ["nrlmsise00", "jb2008"]:
     fig_cont.savefig("Density_GOCE_vs_{}.png".format(endpoint))
 
     # Now plot the profiles for a particular argument latitude
-
     ax_prof.plot(
         tds[:-1], densities_api.statistic.T[midlat_index, :], label=endpoint.upper()
     )
-
 
 ax_prof.legend()
 
