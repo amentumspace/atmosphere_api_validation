@@ -41,12 +41,10 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-
-
-
-# TODO construct filename from year and month of interest
-filename = "goce_denswind_ac082_v2_0_2013-06.txt"
-filename = 'goce_denswind_ac082_v2_0_2011-04.txt'
+# construct filename from year and month of interest
+filename = "goce_denswind_ac082_v2_0_" \
+    + args.start_date.strftime("%Y")+"-"\
+    + args.start_date.strftime("%m")+".txt"
 
 # Read the GOCE data file into dataframe
 df_goce = pd.read_csv(
