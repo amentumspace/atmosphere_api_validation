@@ -138,6 +138,8 @@ mydateparser = lambda x: pd.datetime.strptime(x, "%y%m%d")
 
 for m in [current_month_str, next_month_str]:
 
+    print('fetching or reading kp indices for ', m)
+
     url = "ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/"
     filename = "kp"+current_year_str+m+".tab"
 
@@ -177,6 +179,8 @@ df_f107_list = []
 
 # filename is in %Y format so we can jsut cast to str
 for year in [start_date.year-1, start_date.year, start_date.year+1]:
+
+    print('fetching or reading radio indices for ', year)
 
     url = "ftp://ftp.swpc.noaa.gov/pub/warehouse/"+str(year)+"/"
     filename = str(year)+"_DSD.txt"
@@ -235,7 +239,9 @@ for i, flux in enumerate(df_f107["radio_flux"].values):
     if 40 < i < len(df_f107["radio_flux"].values) - 40:
         avg_flux_vals.append(np.mean(df_f107["radio_flux"].values[i - 40 : i + 40]))
     else:
-        raise ValueError("Insufficient data either side of current date to calc average radio flux")
+        avg_flux_vals.append(np.nan)
+
+# TODO ensure we don't use nan values
 
 df_f107["radio_flux_avg"] = avg_flux_vals
 
@@ -320,7 +326,7 @@ densities = stats.binned_statistic_2d(
 # initialise the profile plot
 fig_prof = plt.figure()
 ax_prof = fig_prof.add_subplot(111)
-ax_prof.set_xlabel(datetime.date(year, month, 1).strftime("%B %Y"))
+ax_prof.set_xlabel(start_date.strftime("%B %Y"))
 ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
 
 midlat_index = np.searchsorted(arg_lats, 180)
@@ -338,7 +344,7 @@ def format_func(value, tick_number):
     day of date.
     
     """
-    return start_day + int(value / seconds_per_day)
+    return start_date + int(value / seconds_per_day)
 
 ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
 
