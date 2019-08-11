@@ -136,6 +136,8 @@ df_Kp_list = []
 
 mydateparser = lambda x: pd.datetime.strptime(x, "%y%m%d")
 
+print(current_month_str, next_month_str)
+
 for m in [current_month_str, next_month_str]:
 
     print('fetching or reading kp indices for ', m)
@@ -145,7 +147,26 @@ for m in [current_month_str, next_month_str]:
 
     # file is cached, download if doesn't exist
     if not os.path.exists("./"+filename):
+
+        print("file doesn't exist, fetching from ftp server")
+
         urllib.request.urlretrieve(url+filename, "./"+filename)
+
+        # need to clean file as some are missing storm description 
+        with open("./"+filename, "r") as f : 
+            lines = f.readlines()
+            f.close()
+
+        new_lines = []
+        for line in lines:
+            if len(line.split()) < 13 : 
+                new_lines.append(line.replace('     ', '   na '))
+            else :
+                new_lines.append(line)
+    
+        with open("./"+filename, "w") as f : 
+            f.writelines(new_lines)
+            f.close()
 
     # Fetch geomagnetic indices from ftp server for the same year and month
     # One or more space is considered a separator
@@ -159,7 +180,7 @@ for m in [current_month_str, next_month_str]:
         parse_dates=['date'], 
         date_parser=mydateparser,
         skipfooter=4) # last lines are ignored
-
+   
     # Convert date to datetime object
     # Will be used to look up geomag index on date of measurement
     df_Kp["date"] = pd.to_datetime(df_Kp["date"], format="%y%m%d")
@@ -328,7 +349,7 @@ densities = stats.binned_statistic_2d(
 # initialise the profile plot
 fig_prof = plt.figure()
 ax_prof = fig_prof.add_subplot(111)
-ax_prof.set_xlabel("Days since " + start_date.strftime("%B %Y"))
+ax_prof.set_xlabel("Days since " + start_date.strftime("%Y-%m-%d"))
 ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
 
 midlat_index = np.searchsorted(arg_lats, 180)
@@ -410,7 +431,7 @@ for endpoint in ["nrlmsise00", "jb2008"]:
         ax.set_xticks(np.arange(0, elapsed_days, 5))
 
     # Set x labels on bottom plot only
-    ax_api.set_xlabel(start_date.strftime("%B %Y"))
+    ax_api.set_xlabel("Days since " + start_date.strftime("%Y-%m-%d"))
 
     # Format colorbar axis
     cb = fig_cont.colorbar(cs1, ax=list((ax_goce, ax_api)), format="%3.1e")
