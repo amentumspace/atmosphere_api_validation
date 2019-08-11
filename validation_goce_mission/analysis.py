@@ -158,43 +158,52 @@ df_goce["Ap"] = [
     df_Kp["Ap"][df_Kp["date"].searchsorted(dt) - 1] for dt in df_goce.datetime.values
 ]
 
-# Fetch radio flux lookup dataframe for the month, and cache
+# Fetch radio flux lookup dataframe for the current and adjacent years
+# to account for when we're close to month start or end
 
-url = "ftp://ftp.swpc.noaa.gov/pub/warehouse/"+start_date.strftime("%Y")+"/"
-filename = start_date.strftime("%Y")+"_DSD.txt"
+df_f107_list = []
 
-# file is cached, download if doesn't exist
-if not os.path.exists("./"+filename):
-    urllib.request.urlretrieve(url+filename, "./"+filename)
+# filename is in %Y format so we can jsut cast to str
+for year in [start_date.year-1, start_date.year, start_date.year+1]:
 
-# Fetch radio flux data for this year from local file
-df_f107 = pd.read_csv(
-    "./"+filename, 
-    sep="\s+", 
-    comment="#", 
-    header=None, 
-    usecols=range(4)
-    skiprows=2)
+    url = "ftp://ftp.swpc.noaa.gov/pub/warehouse/"+str(year)+"/"
+    filename = str(year)+"_DSD.txt"
 
-df_f107.columns = [
-    "year",
-    "month",
-    "day",
-    "radio_flux"
-]
+    # file is cached, download if doesn't exist
+    if not os.path.exists("./"+filename):
+        urllib.request.urlretrieve(url+filename, "./"+filename)
 
-# Create new column of type datetime based on the ymd columns
-# Will be used to lookup radio flux on date of measurement
-df_f107["date"] = pd.to_datetime(df_f107[["year", "month", "day"]])
+    # Fetch radio flux data for this year from local file
+    df_f107 = pd.read_csv(
+        "./"+filename, 
+        sep="\s+", 
+        comment="#", 
+        header=None, 
+        usecols=range(4),
+        names=[
+            "year",
+            "month",
+            "day",
+            "radio_flux"
+        ],
+        skiprows=2)
 
-# Drop unused columns
-df_f107 = df_f107.drop(
-    columns=[
-        "year",
-        "month",
-        "day",
-    ]
-)
+    # Create new column of type datetime based on the ymd columns
+    # Will be used to lookup radio flux on date of measurement
+    df_f107["date"] = pd.to_datetime(df_f107[["year", "month", "day"]])
+
+    # Drop unused columns
+    df_f107 = df_f107.drop(
+        columns=[
+            "year",
+            "month",
+            "day",
+        ]
+    )
+
+    df_f107_list.append(df_f107)
+
+df_f107 = pd.concat(df_f107_list, axis=0, ignore_index=True)
 
 # Look up the radio flux for the day before each date of measurement
 # Create new column in the original dataframe
@@ -207,17 +216,16 @@ for dt in df_goce.datetime.values:
 df_goce["f107"] = result
 
 # Iterate ove the radio flux data and calculate 81 day averages
-# if there are enough datapoints either side, otherwise assign zero
+# if there are enough datapoints either side, otherwise raise error
 avg_flux_vals = []
 for i, flux in enumerate(df_f107["radio_flux"].values):
     #
     if 40 < i < len(df_f107["radio_flux"].values) - 40:
         avg_flux_vals.append(np.mean(df_f107["radio_flux"].values[i - 40 : i + 40]))
     else:
-        avg_flux_vals.append(0)
+        raise ValueError("Insufficient data either side of current date to calc average radio flux")
 
 df_f107["radio_flux_avg"] = avg_flux_vals
-
 
 # Look up the 81 day average radio flux at each date of measurement
 df_goce["f107a"] = [
@@ -266,7 +274,7 @@ def fetch_density_from_api(row, url):
 # limits for binning of timestamp and arg of lat
 
 # NOTE this was optimised to ensure sufficient bin widths such that at least a data 
-# point per bin with sufficiently sparse GOCE data to ensure daily API quote not exceeded 
+# point per bin with the sparse GOCE data to ensure daily API quote not exceeded 
 # for users. Resolution can be improved for staging and on-premises deployments. 
 time_delta_low = 0
 time_delta_high = (stop_date - start_date).total_seconds()
