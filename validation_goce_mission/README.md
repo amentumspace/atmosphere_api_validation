@@ -10,11 +10,25 @@ The following study validates the NRLMSISE-00 and JB2008 endpoints of the Amentu
 
 More information on the mission can be found [here](https://earth.esa.int/web/guest/missions/esa-eo-missions/goce/mission-summary). 
 
-# Development environment
+# Run time environment
 
 You can install the required Python packages using pip like so
 
     pip install -r requirements.txt 
+
+# Run the analysis
+
+    $ python analysis.py -h
+        usage: analysis.py [-h] [--hostname HOSTNAME][--start_date START_DATE][--goce_dir GOCE_DIR]
+
+        optional arguments:
+        -h, --help            show this help message and exit
+        --hostname HOSTNAME   specify an alternative hostname for testing (e.g. on-premises server)
+        --start_date START_DATE specify the start date for the analysis as YYYYMMDD
+        --goce_dir GOCE_DIR   specify path to directory containing extracted goce data archive
+
+
+That will produce results as PNG files in the same directory.
     
 # Results
 
