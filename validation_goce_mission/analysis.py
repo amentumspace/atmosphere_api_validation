@@ -134,6 +134,8 @@ current_year_str = start_date.strftime("%y")
 
 df_Kp_list = []
 
+mydateparser = lambda x: pd.datetime.strptime(x, "%y%m%d")
+
 for m in [current_month_str, next_month_str]:
 
     url = "ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/"
@@ -150,8 +152,10 @@ for m in [current_month_str, next_month_str]:
         sep="\s+", 
         comment="#", 
         header=None, 
-        usecols=(0,10), # isolate date and Kp index,
+        usecols=(0,11), # isolate date and Kp index,
         names=["date", "Ap"],
+        parse_dates=['date'], 
+        date_parser=mydateparser,
         skipfooter=4) # last lines are ignored
 
     # Convert date to datetime object
@@ -169,7 +173,6 @@ df_goce["Ap"] = [
 
 # Fetch radio flux lookup dataframe for the current and adjacent years
 # to account for when we're close to month start or end
-
 df_f107_list = []
 
 # filename is in %Y format so we can jsut cast to str
