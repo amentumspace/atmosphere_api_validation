@@ -29,7 +29,7 @@ parser.add_argument(
     '--start_date', 
     type=lambda s: datetime.datetime.strptime(s, '%Y%m%d'),
     dest="start_date",
-    help="specify the start date for the analysis",
+    help="specify the start date for the analysis as YYYYMMDD",
     default="20130605"
 )
 parser.add_argument(
@@ -42,6 +42,15 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+mission_data_start = datetime.datetime(year=2009, month=12, day=1) 
+mission_data_stop = datetime.datetime(year=2013, month=9, day=1)
+
+if not (mission_data_start < args.start_date < mission_data_stop):
+    raise ValueError(
+        "Date {} is outside mission data range {} to {}".format(
+        args.start_date, mission_data_start, mission_data_stop)
+    )
+
 # TODO ensure date within range of mission
 
 # construct filename from year and month of interest
@@ -51,7 +60,7 @@ filename = "goce_denswind_ac082_v2_0_" \
 
 # Read the GOCE data file into dataframe
 df_goce = pd.read_csv(
-   filename, sep="\s+", comment="#", header=None
+   args.goce_dir+"/"+filename, sep="\s+", comment="#", header=None
 )
 
 # Name the columns
