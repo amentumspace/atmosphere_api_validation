@@ -6,7 +6,7 @@ The mission objectives demanded an unusually low altitude orbit with an electric
 
 GOCE's instruments also provided the world with valuable insights into the density and winds of the atmosphere. 
 
-The following study validates the NRLMSISE-00 and JB2008 endpoints of the Amentum API by comparing results of API calls with experimental data obtained during the GOCE mission. 
+The following study validates the NRLMSISE-00 and JB2008 endpoints of the Amentum API by comparing results of API calls with experimental data obtained during the GOCE mission. A 2D distribution of atmospheric mass density is calculated as a function of Argument of Latitude and number of days from a nominated start-date (see instructions below). A 1D time series of density versus days is calculated for Argument of Latitudes in the window 180-185 degrees.
 
 More information on the mission can be found [here](https://earth.esa.int/web/guest/missions/esa-eo-missions/goce/mission-summary). 
 
