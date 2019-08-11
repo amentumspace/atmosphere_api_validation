@@ -293,7 +293,10 @@ def fetch_density_from_api(row, url):
 
 # NOTE this was optimised to ensure sufficient bin widths such that at least a data 
 # point per bin with the sparse GOCE data to ensure daily API quote not exceeded 
-# for users. Resolution can be improved for staging and on-premises deployments. 
+# for users. Resolution can be improved for staging and on-premises deployments.
+# 
+# we calculate dsitributions of mean density for discrete values of seconds from 
+# the start date, and values of argument of latitude.  
 time_delta_low = 0
 time_delta_high = (stop_date - start_date).total_seconds()
 
@@ -308,7 +311,6 @@ arg_lats = np.arange(0,360+arg_lat_delta,arg_lat_delta)
 
 # Convert datetimes to delta since first measurements
 # This will be used for the binning and plotting
-# (avoids using datetime objects)
 time_deltas = df_goce["datetime"].values - df_goce["datetime"].values.min()
 
 # Convert time_deltas to seconds, will also convert to float type
@@ -326,7 +328,7 @@ densities = stats.binned_statistic_2d(
 # initialise the profile plot
 fig_prof = plt.figure()
 ax_prof = fig_prof.add_subplot(111)
-ax_prof.set_xlabel(start_date.strftime("%B %Y"))
+ax_prof.set_xlabel("Days since " + start_date.strftime("%B %Y"))
 ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
 
 midlat_index = np.searchsorted(arg_lats, 180)
@@ -344,7 +346,7 @@ def format_func(value, tick_number):
     day of date.
     
     """
-    return start_date + int(value / seconds_per_day)
+    return int(value / seconds_per_day)
 
 ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
 
@@ -353,6 +355,8 @@ fig_prof.suptitle(
 )
 
 # Calculate NRLMSISE-00 model densities using the API
+
+elapsed_days = (stop_date - start_date).days
 
 for endpoint in ["nrlmsise00", "jb2008"]:
 
@@ -381,7 +385,7 @@ for endpoint in ["nrlmsise00", "jb2008"]:
 
     cs0 = ax_goce.imshow(
         densities.statistic.T,
-        extent=(start_day, stop_day, arg_lats.min(), arg_lats.max()),
+        extent=(0, elapsed_days, arg_lats.min(), arg_lats.max()),
         origin="lower",
         aspect="auto",
         cmap=plt.cm.jet,
@@ -391,7 +395,7 @@ for endpoint in ["nrlmsise00", "jb2008"]:
 
     cs1 = ax_api.imshow(
         densities_api.statistic.T,
-        extent=(start_day, stop_day, arg_lats.min(), arg_lats.max()),
+        extent=(0, elapsed_days, arg_lats.min(), arg_lats.max()),
         origin="lower",
         aspect="auto",
         cmap=plt.cm.jet,
@@ -403,10 +407,10 @@ for endpoint in ["nrlmsise00", "jb2008"]:
         # Fetch the labels for the api sourced data
         ax.set_ylabel("Argument of Latitude, deg")
         ax.set_yticks(np.arange(0, 360, 90))
-        ax.set_xticks(np.arange(start_day, stop_day, 5))
+        ax.set_xticks(np.arange(0, elapsed_days, 5))
 
     # Set x labels on bottom plot only
-    ax_api.set_xlabel(datetime.date(year, month, 1).strftime("%B %Y"))
+    ax_api.set_xlabel(start_date.strftime("%B %Y"))
 
     # Format colorbar axis
     cb = fig_cont.colorbar(cs1, ax=list((ax_goce, ax_api)), format="%3.1e")
