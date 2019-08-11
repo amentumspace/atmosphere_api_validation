@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import requests
 from scipy import stats
+import urllib
 
 """
 
@@ -106,50 +107,30 @@ df_goce = df_goce[
 ]
 
 # Reduce the dataset by only keeping every N-th sample
-# reduces the number of API calls
+# reduces the number of API calls, but requires coarse binning. 
+# TODO modify this for local testing and on-premises API installs
 reduction_factor = 100
 df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Create geomagnetic indices lookup dataframe for the month
 
-# Fetch geomagnetic indices from local file for the same year and month
+url = "ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/"
+filename = "kp"+start_date.strftime("%y%m")+".tab"
+
+# file is cached, download if doesn't exist
+if not os.path.exists("./"+filename):
+    urllib.request.urlretrieve(url+filename, "./"+filename)
+
+# Fetch geomagnetic indices from ftp server for the same year and month
 # One or more space is considered a separator
 df_Kp = pd.read_csv(
-    "kp"+start_date.strftime("%y%m")+".tab", 
-    sep="\s+", comment="#", header=None)
+    "./"+filename, 
+    sep="\s+", 
+    comment="#", 
+    header=None, 
+    usecols=(0,10), # isolate date and Kp index
+    skipfooter=4) # last lines are ignored
 #
-df_Kp.columns = [
-    "date",
-    "kp0",
-    "kp1",
-    "kp2",
-    "kp3",
-    "kp4",
-    "kp5",
-    "kp6",
-    "kp7",
-    "kp_sum",
-    "quiet_disturbed_day",
-    "Ap",
-    "Cp",
-]
-
-# Drop unused columns
-df_Kp = df_Kp.drop(
-    columns=[
-        "kp0",
-        "kp1",
-        "kp2",
-        "kp3",
-        "kp4",
-        "kp5",
-        "kp6",
-        "kp7",
-        "kp_sum",
-        "quiet_disturbed_day",
-        "Cp",
-    ]
-)
 
 # Convert date to datetime object
 # Will be used to look up geomag index on date of measurement
