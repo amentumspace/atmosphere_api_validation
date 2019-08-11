@@ -97,12 +97,9 @@ df_goce = df_goce.drop(
 )
 
 # Isolate 1 week 
-start_day = 2
-stop_day = 29
-month = 4
-year = 2011
-start_date = datetime.datetime(year, month, start_day)
-stop_date = datetime.datetime(year, month, stop_day)
+start_date = args.start_date
+stop_date = args.start_date + datetime.timedelta(weeks=1)
+
 df_goce = df_goce[
     (df_goce["datetime"] >= start_date)
     & (df_goce["datetime"] < stop_date)
@@ -117,7 +114,9 @@ df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Fetch geomagnetic indices from local file for the same year and month
 # One or more space is considered a separator
-df_Kp = pd.read_csv("kp1104.tab", sep="\s+", comment="#", header=None)
+df_Kp = pd.read_csv(
+    "kp"+start_date.strftime("%y%m")+".tab", 
+    sep="\s+", comment="#", header=None)
 #
 df_Kp.columns = [
     "date",
@@ -164,7 +163,9 @@ df_goce["Ap"] = [
 # Create radio flux lookup dataframe for the month
 
 # Fetch radio flux data for this year from local file
-df_f107 = pd.read_csv("2011_DSD.txt", sep="\s+", comment="#", header=None)
+df_f107 = pd.read_csv(
+    start_date.strftime("%Y")+"_DSD.txt", 
+    sep="\s+", comment="#", header=None)
 
 df_f107.columns = [
     "year",
