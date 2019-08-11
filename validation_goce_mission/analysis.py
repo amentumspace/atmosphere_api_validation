@@ -468,8 +468,6 @@ cb = fig_cont.colorbar(
 
 cb.set_label("Density " + r"$kgm^{-3}$")
 
-fig_cont.tight_layout()
-
 fig_cont.savefig("Density_GOCE_vs_Models_{}.png".format(start_date.strftime("%Y%m%d")))
 
 # draw the legend on the profile 
