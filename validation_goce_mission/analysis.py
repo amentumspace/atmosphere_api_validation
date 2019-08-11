@@ -120,7 +120,7 @@ df_goce = df_goce[
 """ Reduce the dataset by only keeping every N-th sample
  reduces the number of API calls, but requires coarse binning. 
  TODO modify this for local testing and on-premises API installs"""
-reduction_factor = 100
+reduction_factor = 10
 df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Create geomagnetic indices lookup dataframe for the month
@@ -322,12 +322,12 @@ time_delta_low = 0
 time_delta_high = (stop_date - start_date).total_seconds()
 
 # go for hourly or daily bins. 
-seconds_per_hour = 60 * 60 
 seconds_per_day = 60 * 60 * 24 
+seconds_per_bin = seconds_per_day * 0.5
 # bin to ensure final edge is considered
-tds = np.arange(time_delta_low, time_delta_high+seconds_per_day, seconds_per_day)
+tds = np.arange(time_delta_low, time_delta_high+seconds_per_bin, seconds_per_bin)
 
-arg_lat_delta = 10 # argument of latitude resolution in degrees
+arg_lat_delta = 5 # argument of latitude resolution in degrees
 arg_lats = np.arange(0,360+arg_lat_delta,arg_lat_delta)
 
 # Convert datetimes to delta since first measurements
@@ -358,7 +358,6 @@ arg_lat_of_interest = arg_lats[midlat_index]
 
 ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index, :], label="GOCE")
 
-
 labels = [item.get_text() for item in ax_prof.get_xticklabels()]
 
 def format_func(value, tick_number):
@@ -371,15 +370,49 @@ def format_func(value, tick_number):
 
 ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
 
+# TODO add bin edges to title 
+
 fig_prof.suptitle(
-    "Argument of latitude {0:.2f} deg".format(arg_lat_of_interest), fontsize=12
+    "Argument of latitude {}-{} deg".format(
+        arg_lat_of_interest, arg_lats[midlat_index+1]
+        ), fontsize=12
 )
 
 # Calculate NRLMSISE-00 model densities using the API
 
 elapsed_days = (stop_date - start_date).days
 
-for endpoint in ["nrlmsise00", "jb2008"]:
+# TODO plot all on same figure
+
+fig_cont, (ax_goce, ax_nrlmsise00, ax_jb2008) = \
+    plt.subplots(nrows=3, sharex=True, figsize=(8,12))
+
+images = []
+
+img = ax_goce.imshow(
+    densities.statistic.T,
+    extent=(0, elapsed_days, arg_lats.min(), arg_lats.max()),
+    origin="lower",
+    aspect="auto",
+    cmap=plt.cm.jet,
+    vmin=df_goce["density"].values.min(),
+    vmax=df_goce["density"].values.max(),
+)
+
+images.append(img)
+
+# Fetch the labels for the api sourced data
+ax_goce.set_ylabel("AOL, deg")
+ax_goce.set_yticks(np.arange(0, 360, 90))
+ax_goce.set_xticks(np.arange(0, elapsed_days, 1))
+
+ax_goce.set_title("GOCE")
+
+for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
+
+    ax_api = ax_nrlmsise00 if i==0 else ax_jb2008
+
+    ax_api.set_title(endpoint.upper())
 
     url = args.hostname + "/api/" + endpoint
 
@@ -401,20 +434,7 @@ for endpoint in ["nrlmsise00", "jb2008"]:
         bins=(tds, arg_lats),
     )
 
-    fig_cont, (ax_goce, ax_api) = plt.subplots(nrows=2, sharex=True)
-    fig_cont.suptitle("GOCE (top) vs "+endpoint.upper()+" (bottom)")
-
-    cs0 = ax_goce.imshow(
-        densities.statistic.T,
-        extent=(0, elapsed_days, arg_lats.min(), arg_lats.max()),
-        origin="lower",
-        aspect="auto",
-        cmap=plt.cm.jet,
-        vmin=df_goce["density"].values.min(),
-        vmax=df_goce["density"].values.max(),
-    )
-
-    cs1 = ax_api.imshow(
+    img = ax_api.imshow(
         densities_api.statistic.T,
         extent=(0, elapsed_days, arg_lats.min(), arg_lats.max()),
         origin="lower",
@@ -424,27 +444,36 @@ for endpoint in ["nrlmsise00", "jb2008"]:
         vmax=df_goce["density"].values.max(),
     )
 
-    for ax in [ax_goce, ax_api]:
-        # Fetch the labels for the api sourced data
-        ax.set_ylabel("Argument of Latitude, deg")
-        ax.set_yticks(np.arange(0, 360, 90))
-        ax.set_xticks(np.arange(0, elapsed_days, 5))
+    images.append(img)
 
-    # Set x labels on bottom plot only
-    ax_api.set_xlabel("Days since " + start_date.strftime("%Y-%m-%d"))
-
-    # Format colorbar axis
-    cb = fig_cont.colorbar(cs1, ax=list((ax_goce, ax_api)), format="%3.1e")
-
-    cb.set_label("Density " + r"$kgm^{-3}$")
-
-    fig_cont.savefig("Density_GOCE_vs_{}.png".format(endpoint))
+    # Set the labels for the api plots
+    ax_api.set_ylabel("AOL, deg")
+    ax_api.set_yticks(np.arange(0, 360, 90))
+    ax_api.set_xticks(np.arange(0, elapsed_days, 1))
 
     # Now plot the profiles for a particular argument latitude
     ax_prof.plot(
         tds[:-1], densities_api.statistic.T[midlat_index, :], label=endpoint.upper()
     )
 
-ax_prof.legend()
+# Set x labels on bottom plot only
+ax_api.set_xlabel("Days since " + start_date.strftime("%Y-%m-%d"))
 
-fig_prof.savefig("Density_vs_API_AOL_{}.png".format(int(arg_lat_of_interest)))
+# Format colorbar axis
+cb = fig_cont.colorbar(
+    images[0], 
+    ax=list((ax_goce, ax_nrlmsise00, ax_jb2008)), 
+    format="%3.1e",
+    fraction=0.1)
+
+cb.set_label("Density " + r"$kgm^{-3}$")
+
+fig_cont.tight_layout()
+
+fig_cont.savefig("Density_GOCE_vs_Models_{}.png".format(start_date.strftime("%Y%m%d")))
+
+# draw the legend on the profile 
+ax_prof.legend()
+fig_prof.savefig("Density_vs_API_AOL_{}_{}.png".format(
+    int(arg_lat_of_interest),
+    start_date.strftime("%Y%m%d")))
