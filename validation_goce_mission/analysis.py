@@ -42,6 +42,8 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+# TODO ensure date within range of mission
+
 # construct filename from year and month of interest
 filename = "goce_denswind_ac082_v2_0_" \
     + args.start_date.strftime("%Y")+"-"\
@@ -106,36 +108,50 @@ df_goce = df_goce[
     & (df_goce["datetime"] < stop_date)
 ]
 
-# Reduce the dataset by only keeping every N-th sample
-# reduces the number of API calls, but requires coarse binning. 
-# TODO modify this for local testing and on-premises API installs
+""" Reduce the dataset by only keeping every N-th sample
+ reduces the number of API calls, but requires coarse binning. 
+ TODO modify this for local testing and on-premises API installs"""
 reduction_factor = 100
 df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Create geomagnetic indices lookup dataframe for the month
 
-url = "ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/"
-filename = "kp"+start_date.strftime("%y%m")+".tab"
+current_month_str = start_date.strftime("%m")
+next_month_str = (start_date + datetime.timedelta(days=31)).strftime("%m")
+current_year_str = start_date.strftime("%y")
 
-# file is cached, download if doesn't exist
-if not os.path.exists("./"+filename):
-    urllib.request.urlretrieve(url+filename, "./"+filename)
+# get the indices for current and next month in case start date close to 
+# month's end
 
-# Fetch geomagnetic indices from ftp server for the same year and month
-# One or more space is considered a separator
-df_Kp = pd.read_csv(
-    "./"+filename, 
-    sep="\s+", 
-    comment="#", 
-    header=None, 
-    usecols=(0,10), # isolate date and Kp index
-    skipfooter=4) # last lines are ignored
-#
-df_Kp.columns = ["date", "Ap"]
+df_Kp_list = []
 
-# Convert date to datetime object
-# Will be used to look up geomag index on date of measurement
-df_Kp["date"] = pd.to_datetime(df_Kp["date"], format="%y%m%d")
+for m in [current_month_str, next_month_str]:
+
+    url = "ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/"
+    filename = "kp"+current_year_str+m+".tab"
+
+    # file is cached, download if doesn't exist
+    if not os.path.exists("./"+filename):
+        urllib.request.urlretrieve(url+filename, "./"+filename)
+
+    # Fetch geomagnetic indices from ftp server for the same year and month
+    # One or more space is considered a separator
+    df_Kp = pd.read_csv(
+        "./"+filename, 
+        sep="\s+", 
+        comment="#", 
+        header=None, 
+        usecols=(0,10), # isolate date and Kp index,
+        names=["date", "Ap"],
+        skipfooter=4) # last lines are ignored
+
+    # Convert date to datetime object
+    # Will be used to look up geomag index on date of measurement
+    df_Kp["date"] = pd.to_datetime(df_Kp["date"], format="%y%m%d")
+
+    df_Kp_list.append(df_Kp)
+
+df_Kp = pd.concat(df_Kp_list, axis=0, ignore_index=True)
 
 # Look up the geomag index at each date of measurement
 df_goce["Ap"] = [
