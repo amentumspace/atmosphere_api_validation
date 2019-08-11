@@ -131,6 +131,7 @@ df_Kp = pd.read_csv(
     usecols=(0,10), # isolate date and Kp index
     skipfooter=4) # last lines are ignored
 #
+df_Kp.columns = ["date", "Ap"]
 
 # Convert date to datetime object
 # Will be used to look up geomag index on date of measurement
@@ -141,30 +142,29 @@ df_goce["Ap"] = [
     df_Kp["Ap"][df_Kp["date"].searchsorted(dt) - 1] for dt in df_goce.datetime.values
 ]
 
-# Create radio flux lookup dataframe for the month
+# Fetch radio flux lookup dataframe for the month, and cache
+
+url = "ftp://ftp.swpc.noaa.gov/pub/warehouse/"+start_date.strftime("%Y")+"/"
+filename = start_date.strftime("%Y")+"_DSD.txt"
+
+# file is cached, download if doesn't exist
+if not os.path.exists("./"+filename):
+    urllib.request.urlretrieve(url+filename, "./"+filename)
 
 # Fetch radio flux data for this year from local file
 df_f107 = pd.read_csv(
-    start_date.strftime("%Y")+"_DSD.txt", 
-    sep="\s+", comment="#", header=None)
+    "./"+filename, 
+    sep="\s+", 
+    comment="#", 
+    header=None, 
+    usecols=range(4)
+    skiprows=2)
 
 df_f107.columns = [
     "year",
     "month",
     "day",
-    "radio_flux",
-    "sunspot_number",
-    "sunspot_area",
-    "new_regions",
-    "solar_mean_field",
-    "goes_xray_flux",
-    "flares_c",
-    "flares_m",
-    "flares_x",
-    "flares_s",
-    "flares_1",
-    "flares_2",
-    "flares_3",
+    "radio_flux"
 ]
 
 # Create new column of type datetime based on the ymd columns
@@ -177,18 +177,6 @@ df_f107 = df_f107.drop(
         "year",
         "month",
         "day",
-        "sunspot_number",
-        "sunspot_area",
-        "new_regions",
-        "solar_mean_field",
-        "goes_xray_flux",
-        "flares_c",
-        "flares_m",
-        "flares_x",
-        "flares_s",
-        "flares_1",
-        "flares_2",
-        "flares_3",
     ]
 )
 
