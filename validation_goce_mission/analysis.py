@@ -11,14 +11,13 @@ import urllib
 """
 
 Plotting 1 week of GOCE data for nominated year, month, day
-Comparing with atmospheric density with that predicted by NRLMSISE00 and 
+Comparing measured atmospheric density with that predicted by NRLMSISE00 and 
 JB2008 models accessed via the Amentum Aerospace API. 
 Requires dedicated server or on-premises deployment, will exceed daily limit 
 on the research plan.
 
 """
 
-# Obtain the hostname via command line argument (for on-premises deployment)
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--hostname",
@@ -49,11 +48,9 @@ mission_data_stop = datetime.datetime(year=2013, month=9, day=1)
 
 if not (mission_data_start < args.start_date < mission_data_stop):
     raise ValueError(
-        "Date {} is outside mission data range {} to {}".format(
+        "Date {} is outside mission date range {} to {}".format(
         args.start_date, mission_data_start, mission_data_stop)
     )
-
-# TODO ensure date within range of mission
 
 # construct filename from year and month of interest
 filename = "goce_denswind_ac082_v2_0_" \
@@ -90,7 +87,7 @@ df_goce.columns = [
 # Combine date and time into single string and create new column for them
 df_goce["datetime"] = df_goce["date"] + " " + df_goce["time"]
 
-# Convert date and time to datetime object to enable filtering of data based thereupon
+# Convert date and time to datetime object to enable filtering of data based thereuponst
 df_goce["datetime"] = pd.to_datetime(df_goce["datetime"])
 
 # Drop ununsed columns
@@ -124,27 +121,22 @@ df_goce = df_goce[
 reduction_factor = 10
 df_goce = df_goce.iloc[::reduction_factor, :]
 
-# Create geomagnetic indices lookup dataframe for the month
+# Create geomagnetic indices lookup dataframe for the current and next month
 
-current_month_str = start_date.strftime("%m")
-next_month_str = (start_date + datetime.timedelta(days=31)).strftime("%m")
-current_year_str = start_date.strftime("%y")
+# list to store monthly dataframes for aggregation 
+df_Kp_list = []
+
+# for parsing dates from Ap indices file
+mydateparser = lambda x: pd.datetime.strptime(x, "%y%m%d")
 
 # get the indices for current and next month in case start date close to 
 # month's end
-
-df_Kp_list = []
-
-mydateparser = lambda x: pd.datetime.strptime(x, "%y%m%d")
-
-print(current_month_str, next_month_str)
-
-for m in [current_month_str, next_month_str]:
+for m in [f"{start_date.month:02}", f"{start_date.month+1:02}"]:
 
     print('fetching or reading kp indices for ', m)
 
     url = "ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/"
-    filename = "kp"+current_year_str+m+".tab"
+    filename = "kp"+start_date.strftime("%y")+m+".tab"
 
     # file is cached, download if doesn't exist
     if not os.path.exists("./"+filename):
