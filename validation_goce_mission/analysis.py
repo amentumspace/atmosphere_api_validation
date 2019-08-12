@@ -131,12 +131,12 @@ mydateparser = lambda x: pd.datetime.strptime(x, "%y%m%d")
 
 # get the indices for current and next month in case start date close to 
 # month's end
-for m in [f"{start_date.month:02}", f"{start_date.month+1:02}"]:
+for date in [start_date, (start_date+datetime.timedelta(days=31))]:
 
-    print('fetching or reading kp indices for ', m)
+    print('fetching or reading kp indices for ', date)
 
     url = "ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/"
-    filename = "kp"+start_date.strftime("%y")+m+".tab"
+    filename = "kp"+date.strftime("%y%m")+".tab"
 
     # file is cached, download if doesn't exist
     if not os.path.exists("./"+filename):
@@ -235,11 +235,13 @@ for year in [start_date.year-1, start_date.year, start_date.year+1]:
 
 df_f107 = pd.concat(df_f107_list, axis=0, ignore_index=True)
 
+# 
+
 # Look up the radio flux for the day before each date of measurement
 # Create new column in the original dataframe
 result = []
 for dt in df_goce.datetime.values:
-    # find index of row in radio flux, will be day after, so subtract 1
+    # find index of row in radio flux 
     index = df_f107["date"].searchsorted(dt) - 1
     # we want to day before
     result.append(df_f107["radio_flux"][index - 1])
@@ -255,8 +257,6 @@ for i, flux in enumerate(df_f107["radio_flux"].values):
     else:
         avg_flux_vals.append(np.nan)
 
-# TODO ensure we don't use nan values
-
 df_f107["radio_flux_avg"] = avg_flux_vals
 
 # Look up the 81 day average radio flux at each date of measurement
@@ -270,9 +270,11 @@ def fetch_density_from_api(row, url):
     Make an API call to sample the atmospheric density using the 
     NRLMSISE-00 or JB2008 model
     
-    Args: row of pandas dataframe containing conditions at time of measurement
+    Args: 
+        row of pandas dataframe containing conditions at time of measurement
+        url of the end point to hit
     Returns:
-        density in kg/m3
+        density in kg/m3 as json
     
     """
     # params common to both
@@ -288,6 +290,9 @@ def fetch_density_from_api(row, url):
     }
     # additional params required for the nrl endpoint
     if "nrlmsise00" in url:
+        # TODO ensure we don't use nan values
+        if np.isnan(row["f107a"]):
+            raise ValueError("encountered nan value for the 81 day avg radio flux")
         payload.update({
             "f107a": row["f107a"],
             "f107": row["f107"],
@@ -305,25 +310,23 @@ def fetch_density_from_api(row, url):
 
 # limits for binning of timestamp and arg of lat
 
-# NOTE this was optimised to ensure sufficient bin widths such that at least a data 
-# point per bin with the sparse GOCE data to ensure daily API quote not exceeded 
-# for users. Resolution can be improved for staging and on-premises deployments.
 # 
 # we calculate dsitributions of mean density for discrete values of seconds from 
-# the start date, and values of argument of latitude.  
+# the start date, and discrete values of argument of latitude.  
+# the resolution can be tuned to reduce number of API calls for the study
 time_delta_low = 0
 time_delta_high = (stop_date - start_date).total_seconds()
 
 # go for hourly or daily bins. 
 seconds_per_day = 60 * 60 * 24 
 seconds_per_bin = seconds_per_day * 0.1
-# bin to ensure final edge is considered
+# binning ensures the final edge is considered
 tds = np.arange(time_delta_low, time_delta_high+seconds_per_bin, seconds_per_bin)
 
 arg_lat_delta = 9 # argument of latitude resolution in degrees
 arg_lats = np.arange(0,360+arg_lat_delta,arg_lat_delta)
 
-# Convert datetimes to delta since first measurements
+# Convert datetimes to delta time in seconds since first measurements
 # This will be used for the binning and plotting
 time_deltas = df_goce["datetime"].values - df_goce["datetime"].values.min()
 
