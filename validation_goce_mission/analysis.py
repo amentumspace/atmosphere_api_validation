@@ -12,7 +12,9 @@ import urllib
 
 Plotting 1 week of GOCE data for nominated year, month, day
 Comparing with atmospheric density with that predicted by NRLMSISE00 and 
-JB2008 models accessed via the Amentum Aerospace API
+JB2008 models accessed via the Amentum Aerospace API. 
+Requires dedicated server or on-premises deployment, will exceed daily limit 
+on the research plan.
 
 """
 
@@ -118,9 +120,8 @@ df_goce = df_goce[
 ]
 
 """ Reduce the dataset by only keeping every N-th sample
- reduces the number of API calls, but requires coarse binning. 
- TODO modify this for local testing and on-premises API installs"""
-reduction_factor = 100
+ reduces the number of API calls, but requires coarser binning."""
+reduction_factor = 10
 df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Create geomagnetic indices lookup dataframe for the month
@@ -323,11 +324,11 @@ time_delta_high = (stop_date - start_date).total_seconds()
 
 # go for hourly or daily bins. 
 seconds_per_day = 60 * 60 * 24 
-seconds_per_bin = seconds_per_day * 0.5
+seconds_per_bin = seconds_per_day * 0.1
 # bin to ensure final edge is considered
 tds = np.arange(time_delta_low, time_delta_high+seconds_per_bin, seconds_per_bin)
 
-arg_lat_delta = 36 # argument of latitude resolution in degrees
+arg_lat_delta = 9 # argument of latitude resolution in degrees
 arg_lats = np.arange(0,360+arg_lat_delta,arg_lat_delta)
 
 # Convert datetimes to delta since first measurements
@@ -349,7 +350,7 @@ densities = stats.binned_statistic_2d(
 # initialise the profile plot
 fig_prof = plt.figure()
 ax_prof = fig_prof.add_subplot(111)
-ax_prof.set_xlabel("Days since " + start_date.strftime("%Y-%m-%d"))
+ax_prof.set_xlabel(start_date.strftime("%B %Y"))
 ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
 
 midlat_index = np.searchsorted(arg_lats, 180)
@@ -369,7 +370,7 @@ def format_func(value, tick_number):
     day of date.
     
     """
-    return int(value / seconds_per_day)
+    return start_date.day + int(value / seconds_per_day)
 
 ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
 
@@ -383,18 +384,18 @@ fig_prof.suptitle(
 
 # Calculate NRLMSISE-00 model densities using the API
 
-elapsed_days = (stop_date - start_date).days
-
-# TODO plot all on same figure
+# plot all on same figure
 
 fig_cont, (ax_goce, ax_nrlmsise00, ax_jb2008) = \
     plt.subplots(nrows=3, sharex=True, figsize=(8,12))
+
+fig_cont.suptitle(start_date.strftime("%B %Y"))
 
 images = []
 
 img = ax_goce.imshow(
     densities.statistic.T,
-    extent=(0, elapsed_days, arg_lats.min(), arg_lats.max()),
+    extent=(start_date.day, stop_date.day, arg_lats.min(), arg_lats.max()),
     origin="lower",
     aspect="auto",
     cmap=plt.cm.jet,
@@ -407,7 +408,7 @@ images.append(img)
 # Fetch the labels for the api sourced data
 ax_goce.set_ylabel("AOL, deg")
 ax_goce.set_yticks(np.arange(0, 360, 90))
-ax_goce.set_xticks(np.arange(0, elapsed_days, 1))
+ax_goce.set_xticks(np.arange(start_date.day, stop_date.day, 1))
 
 ax_goce.set_title("GOCE")
 
@@ -441,7 +442,7 @@ for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
 
     img = ax_api.imshow(
         densities_api.statistic.T,
-        extent=(0, elapsed_days, arg_lats.min(), arg_lats.max()),
+        extent=(start_date.day, stop_date.day, arg_lats.min(), arg_lats.max()),
         origin="lower",
         aspect="auto",
         cmap=plt.cm.jet,
@@ -454,7 +455,7 @@ for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
     # Set the labels for the api plots
     ax_api.set_ylabel("AOL, deg")
     ax_api.set_yticks(np.arange(0, 360, 90))
-    ax_api.set_xticks(np.arange(0, elapsed_days, 1))
+    ax_api.set_xticks(np.arange(start_date.day, stop_date.day, 1))
 
     # Now plot the profiles for a particular argument latitude
     ax_prof.plot(
@@ -465,7 +466,7 @@ for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
     )
 
 # Set x labels on bottom plot only
-ax_api.set_xlabel("Days since " + start_date.strftime("%Y-%m-%d"))
+ax_api.set_xlabel("Day")
 
 # Format colorbar axis
 cb = fig_cont.colorbar(
@@ -474,7 +475,7 @@ cb = fig_cont.colorbar(
     format="%3.1e",
     fraction=0.1)
 
-cb.set_label("Median Density " + r"$kgm^{-3}$")
+cb.set_label("Density " + r"$kgm^{-3}$")
 
 fig_cont.savefig("Density_GOCE_vs_Models_{}.png".format(start_date.strftime("%Y%m%d")))
 
