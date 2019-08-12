@@ -120,7 +120,7 @@ df_goce = df_goce[
 """ Reduce the dataset by only keeping every N-th sample
  reduces the number of API calls, but requires coarse binning. 
  TODO modify this for local testing and on-premises API installs"""
-reduction_factor = 10
+reduction_factor = 100
 df_goce = df_goce.iloc[::reduction_factor, :]
 
 # Create geomagnetic indices lookup dataframe for the month
@@ -327,7 +327,7 @@ seconds_per_bin = seconds_per_day * 0.5
 # bin to ensure final edge is considered
 tds = np.arange(time_delta_low, time_delta_high+seconds_per_bin, seconds_per_bin)
 
-arg_lat_delta = 5 # argument of latitude resolution in degrees
+arg_lat_delta = 36 # argument of latitude resolution in degrees
 arg_lats = np.arange(0,360+arg_lat_delta,arg_lat_delta)
 
 # Convert datetimes to delta since first measurements
@@ -342,7 +342,7 @@ densities = stats.binned_statistic_2d(
     time_deltas,
     df_goce["argument_latitude"].values,
     df_goce["density"].values,
-    statistic="mean",
+    statistic="median",
     bins=(tds, arg_lats),
 )
 
@@ -356,7 +356,10 @@ midlat_index = np.searchsorted(arg_lats, 180)
 
 arg_lat_of_interest = arg_lats[midlat_index]
 
-ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index, :], label="GOCE")
+ax_prof.plot(tds[:-1], 
+    densities.statistic.T[midlat_index, :], 
+    label="GOCE",
+    marker="D")
 
 labels = [item.get_text() for item in ax_prof.get_xticklabels()]
 
@@ -373,7 +376,7 @@ ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
 # TODO add bin edges to title 
 
 fig_prof.suptitle(
-    "Argument of latitude {}-{} deg".format(
+    "Median Density for AOL {}-{} deg".format(
         arg_lat_of_interest, arg_lats[midlat_index+1]
         ), fontsize=12
 )
@@ -408,6 +411,8 @@ ax_goce.set_xticks(np.arange(0, elapsed_days, 1))
 
 ax_goce.set_title("GOCE")
 
+markers=["s","o"]
+
 for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
 
     ax_api = ax_nrlmsise00 if i==0 else ax_jb2008
@@ -430,7 +435,7 @@ for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
         time_deltas,
         df_goce["argument_latitude"].values,
         df_goce[endpoint].values,
-        statistic="mean",
+        statistic="median",
         bins=(tds, arg_lats),
     )
 
@@ -453,7 +458,10 @@ for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
 
     # Now plot the profiles for a particular argument latitude
     ax_prof.plot(
-        tds[:-1], densities_api.statistic.T[midlat_index, :], label=endpoint.upper()
+        tds[:-1], 
+        densities_api.statistic.T[midlat_index, :],
+        label=endpoint.upper(),
+        marker=markers[i]
     )
 
 # Set x labels on bottom plot only
@@ -466,7 +474,7 @@ cb = fig_cont.colorbar(
     format="%3.1e",
     fraction=0.1)
 
-cb.set_label("Density " + r"$kgm^{-3}$")
+cb.set_label("Median Density " + r"$kgm^{-3}$")
 
 fig_cont.savefig("Density_GOCE_vs_Models_{}.png".format(start_date.strftime("%Y%m%d")))
 
