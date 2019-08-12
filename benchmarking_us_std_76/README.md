@@ -8,7 +8,7 @@ Herein we implement the US Standard Atmosphere 1976 up to a geometric altitude o
 
 More information on the US Standard Atmosphere can be found in the original technical report [here](https://ntrs.nasa.gov/search.jsp?R=19770009539). 
 
-# Development environment
+# Run time environment
 
 You can install the required Python packages using pip like so
 
@@ -24,4 +24,5 @@ Figure 1: Temperature profile for geometric altitudes less than 86 km as predice
 
  Figure 2: Same as Figure 1 for atmospheric mass density.
 
+Copyright 2019 [Amentum Aerospace](https://amentum.space), Australia
 
