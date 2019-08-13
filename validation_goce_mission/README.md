@@ -6,19 +6,49 @@ The mission objectives demanded an unusually low altitude orbit with an electric
 
 GOCE's instruments also provided the world with valuable insights into the density and winds of the atmosphere. 
 
-The following study validates the NRLMSISE-00 model and the Amentum API by comparing results of API calls with experimental data obtained during the GOCE mission. 
+The following study validates the NRLMSISE-00 and JB2008 endpoints of the Amentum API by comparing results of API calls with experimental data obtained during the GOCE mission. A 2D distribution of atmospheric mass density is calculated as a function of Argument of Latitude and number of days from a nominated start-date (see instructions below). A 1D time series of density versus days is calculated for a given interval of Argument of Latitude.
 
 More information on the mission can be found [here](https://earth.esa.int/web/guest/missions/esa-eo-missions/goce/mission-summary). 
 
+# Run time environment
+
+Install the required Python packages using pip like so
+
+    pip install -r requirements.txt 
+
+# Run the analysis
+
+    $ python analysis.py -h
+        usage: analysis.py [-h] [--hostname HOSTNAME][--start_date START_DATE][--goce_dir GOCE_DIR]
+
+        optional arguments:
+        -h, --help            show this help message and exit
+        --hostname HOSTNAME   specify an alternative hostname for testing (e.g. dedicated API server)
+        --start_date START_DATE specify the start date for the analysis as YYYYMMDD
+        --goce_dir GOCE_DIR   specify path to directory containing extracted goce data archive
+
+Results are saved as PNG files in the same directory.
+
+# Batch analysis
+
+Generate validation plots for a 7 day period commencing on the 13th of each month in 2012. NOTE: This will exceed the maximum number of API calls under the research plan and will only work with dedicated API server or on-premises deployment.
+
+    bash batch_run.sh
+    
 # Results
 
-![](./Density_GOCE_vs_NRLMSISE-00.png)
+A sample of results are provided below.
 
-Figure 1: Thermospheric density distributions for June 2013
+Figure 1: Thermospheric density distributions as measured by GOCE, and as calculated by the NRLMSISE00 and JB2008 models accessed via the Amentum Aerospace API, for a week in June 2012.
 
-![](./Density_vs_day_AOL175.png) 
+![](./Density_GOCE_vs_Models_20120613.png)
 
-Figure 2: Density profile for an argument of latitude of 175 degrees for June 2013
+
+
+Figure 2: The time profile of density from Figure 1 at a given Argument of Latitude interval, measured and calculated.
+
+![](./Density_vs_API_AOL_180_20120613.png)
+
 
 # Data sources 
 
@@ -27,3 +57,5 @@ See [here](https://earth.esa.int/web/guest/missions/esa-operational-missions/goc
 [ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/](ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/) for geomagnetic indices, and 
 
 [ftp://ftp.swpc.noaa.gov/pub/warehouse](ftp://ftp.swpc.noaa.gov/pub/warehouse) for radio flux data.
+
+Copyright 2019 [Amentum Aerospace](https://amentum.space), Australia
