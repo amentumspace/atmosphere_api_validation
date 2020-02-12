@@ -31,7 +31,7 @@ Results are saved as PNG files in the same directory.
 
 # Batch analysis
 
-Generate validation plots for a 7 day period commencing on the 13th of each month in 2012. NOTE: This will exceed the maximum number of API calls under the research plan and will only work with dedicated API server or on-premises deployment.
+Generate validation plots for a 7 day period commencing on the 13th of each month in 2012. NOTE: This may exceed the maximum number of API calls under the trial plan, contact team@amentum.space for commercial access plans.
 
     bash batch_run.sh
     
@@ -42,7 +42,6 @@ A sample of results are provided below.
 Figure 1: Thermospheric density distributions as measured by GOCE, and as calculated by the NRLMSISE00 and JB2008 models accessed via the Amentum Aerospace API, for a week in June 2012.
 
 ![](./Density_GOCE_vs_Models_20120613.png)
-
 
 
 Figure 2: The time profile of density from Figure 1 at a given Argument of Latitude interval, measured and calculated.
