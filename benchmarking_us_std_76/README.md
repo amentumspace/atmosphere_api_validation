@@ -14,6 +14,10 @@ You can install the required Python packages using pip like so
 
     pip install -r requirements.txt 
 
+# Run the analysis 
+
+    python analysis.py
+
 # Results
 
 ![](./air_temperature_profile.png)
