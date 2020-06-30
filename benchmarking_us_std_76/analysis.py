@@ -282,11 +282,10 @@ if __name__ == "__main__":
         "geodetic_latitude": 51.47879,
         "geodetic_longitude": 0,
         "utc": 0,
-        "f107a": 150,  # nominal vals suggestewd by NRLMSISE-00 for alt < 80 km
-        "f107": 150,
-        "ap": 4,
         "altitude": 80,
     }
+    # values of radio flux, 81 day average of radio flux, and geomagnetic
+    # Ap index are automatically fetched from online sources by the API
 
     densities_api = []
     temps_api = []
@@ -298,7 +297,6 @@ if __name__ == "__main__":
             response = requests.get(endpoint, params=payload)
         except requests.exceptions.RequestException as e:
             print(e)
-            raise KeyboardInterrupt
         else:
             json_payload = response.json()
             densities_api.append(json_payload["total_mass_density"]["value"])  # [kg/m3]

@@ -51,10 +51,6 @@ Figure 2: The time profile of density from Figure 1 at a given Argument of Latit
 
 # Data sources 
 
-See [here](https://earth.esa.int/web/guest/missions/esa-operational-missions/goce/goce-thermospheric-data ) for GOCE thermospheric density data used in this study, 
-
-[ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/](ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/) for geomagnetic indices, and 
-
-[ftp://ftp.swpc.noaa.gov/pub/warehouse](ftp://ftp.swpc.noaa.gov/pub/warehouse) for radio flux data.
+See [here](https://earth.esa.int/web/guest/missions/esa-operational-missions/goce/goce-thermospheric-data ) for GOCE thermospheric density data used in this study.
 
 Copyright 2019 [Amentum Aerospace](https://amentum.space), Australia
