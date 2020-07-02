@@ -53,4 +53,4 @@ Figure 2: The time profile of density from Figure 1 at a given Argument of Latit
 
 See [here](https://earth.esa.int/web/guest/missions/esa-operational-missions/goce/goce-thermospheric-data ) for GOCE thermospheric density data used in this study.
 
-Copyright 2019 [Amentum Aerospace](https://amentum.space), Australia
+Copyright 2020 [Amentum Aerospace](https://amentum.space), Australia

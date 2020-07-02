@@ -1,5 +1,6 @@
 import argparse
-import datetime
+from datetime import datetime
+from datetime import timedelta
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -12,9 +13,8 @@ import urllib
 
 Plotting 1 week of GOCE data for nominated year, month, day
 Comparing measured atmospheric density with that predicted by NRLMSISE00 and 
-JB2008 models accessed via the Amentum Aerospace API. 
-Requires dedicated server or on-premises deployment, will exceed daily limit 
-on the research plan.
+JB2008 models accessed via the Amentum Atmosphere API. 
+WARNING may require  
 
 """
 
@@ -27,10 +27,17 @@ parser.add_argument(
     default="https://atmosphere.amentum.space",
 )
 parser.add_argument(
+    "--reduction_factor",
+    dest="reduction_factor",
+    action="store",
+    help="reduces resolution of 2D grid to avoid exceeding the API limits",
+    default=1
+)
+parser.add_argument(
     '--start_date', 
-    type=lambda s: datetime.datetime.strptime(s, '%Y%m%d'),
+    type=lambda s: datetime.strptime(s, '%Y%m%d'),
     dest="start_date",
-    help="specify the start date for the analysis as YYYYMMDD",
+    help="specify the start date for the analysis as YYYYMMDD. Corresponding GOCE data file must exist.",
     default="20130605"
 )
 parser.add_argument(
@@ -43,13 +50,12 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-mission_data_start = datetime.datetime(year=2009, month=12, day=1) 
-mission_data_stop = datetime.datetime(year=2013, month=9, day=1)
+mission_data_start = datetime(year=2009, month=12, day=1) 
+mission_data_stop = datetime(year=2013, month=9, day=1)
 
 if not (mission_data_start < args.start_date < mission_data_stop):
     raise ValueError(
-        "Date {} is outside mission date range {} to {}".format(
-        args.start_date, mission_data_start, mission_data_stop)
+        f"Date {args.start_date} is outside mission date range {mission_data_start} to {mission_data_stop}"
     )
 
 # construct filename from year and month of interest
@@ -109,35 +115,32 @@ df_goce = df_goce.drop(
 
 # Isolate 1 week 
 start_date = args.start_date
-stop_date = args.start_date + datetime.timedelta(weeks=1)
+stop_date = args.start_date + timedelta(weeks=1)
 
-df_goce = df_goce[
-    (df_goce["datetime"] >= start_date)
-    & (df_goce["datetime"] < stop_date)
-]
+df_goce = df_goce.loc[df_goce.datetime.between(start_date, stop_date)]
 
-""" Reduce the dataset by only keeping every N-th sample
- reduces the number of API calls, but requires coarser binning."""
-reduction_factor = 10
-df_goce = df_goce.iloc[::reduction_factor, :]
+# Reduce the dataset by only keeping every N-th sample
+# reduces the number of API calls, but requires coarser binning
+if args.reduction_factor > 1:
+    df_goce = df_goce.iloc[::reduction_factor, :]
 
-def fetch_density_from_api(row, url):
+def get_futures_request(row, session, url):
     """
-    Make an API call to sample the atmospheric density using the 
-    NRLMSISE-00 or JB2008 model
+    Creates futures requests to sample the atmospheric density 
+    using the NRLMSISE-00 or JB2008 model
     
     Args: 
         row of pandas dataframe containing conditions at time of measurement
         url of the end point to hit
     Returns:
-        density in kg/m3 as json
+        session
     
     """
     # params common to both
     payload = {
         "altitude": row["altitude"] / 1000.0,  # convert to kms
-        "geodetic_latitude": row["latitude"],
-        "geodetic_longitude": row["longitude"], 
+        "geodetic_latitude": row["latitude"], # -90 to 90
+        "geodetic_longitude": row["longitude"], # 0 to 360 
         "year" : row["datetime"].year,
         "month" : row["datetime"].month,
         "day" : row["datetime"].day,
@@ -145,14 +148,22 @@ def fetch_density_from_api(row, url):
         + row["datetime"].minute / 60, # decimal UTC hour
     }
 
-    # Boom, hit it! Then return the JSONs
+    return session.get(url, params=payload)
+
+def process_futures_request(self, future):
+    """
+    Process the futures request checking for errors and return value 
+    from response.
+    """
     try:
-        response = requests.get(url, params=payload)
+        response = future.result()
     except requests.exceptions.RequestException as e:
-        print(e)
-        raise KeyboardInterrupt
-    else:
-        return response.json()
+        assert False, e.args              
+    # make sure our response is ok
+    assert response.ok, response.text
+    # return the value received from the server
+    return response.json()
+
 
 # limits for binning of timestamp and arg of lat
 
@@ -265,11 +276,16 @@ for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
 
     print("WARNING: {} requests to Amentum API, may exceed quota".format(len(df_goce)))
 
+    session = FuturesSession()
+
+    requests = []
     # Apply the function call onto each row of the dataframe
-    res = df_goce.apply(fetch_density_from_api, args=(url,), axis=1)
+    requests = df_goce.apply(get_futures_request, args=(session,url,), axis=1)
+
+    responses = [self.process_futures_request(request) for request in requests]
 
     df_goce[endpoint] = [
-        row['total_mass_density']['value'] for row in res.values
+        res['total_mass_density']['value'] for res in responses
     ]
 
     # Prepare 2D API density data for plotting
@@ -322,6 +338,7 @@ fig_cont.savefig("Density_GOCE_vs_Models_{}.png".format(start_date.strftime("%Y%
 
 # draw the legend on the profile 
 ax_prof.legend()
+
 fig_prof.savefig("Density_vs_API_AOL_{}_{}.png".format(
     int(arg_lat_of_interest),
     start_date.strftime("%Y%m%d")))
