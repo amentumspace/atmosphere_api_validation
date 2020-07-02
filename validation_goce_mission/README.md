@@ -48,6 +48,11 @@ Figure 2: The time profile of density from Figure 1 at a given Argument of Latit
 
 ![](./Density_vs_API_AOL_180_20120613.png)
 
+# TODO 
+
+- update image
+- create bash script to batch processes monthly data and create annual animation
+- fix ticks on time axis
 
 # Data sources 
 
