@@ -19,21 +19,17 @@ Install the required Python packages using pip like so
 # Run the analysis
 
     $ python analysis.py -h
-        usage: analysis.py [-h] [--hostname HOSTNAME][--start_date START_DATE][--goce_dir GOCE_DIR]
 
-        optional arguments:
-        -h, --help            show this help message and exit
-        --hostname HOSTNAME   specify an alternative hostname for testing (e.g. dedicated API server)
-        --start_date START_DATE specify the start date for the analysis as YYYYMMDD
-        --goce_dir GOCE_DIR   specify path to directory containing extracted goce data archive
+    usage: analysis.py [-h] [--host HOST] --goce_file GOCE_FILE
 
-Results are saved as PNG files in the same directory.
+    optional arguments:
+    -h, --help            show this help message and exit
+    --host HOST           specify an alternative host for testing (e.g. on-premises)
+    --goce_file GOCE_FILE
+                            specify path to GOCE density and wind data time series
+                            (goce_denswind_ac082_v2_0_YYYY-MM.txt)
 
-# Batch analysis
-
-Generate validation plots for a 7 day period commencing on the 13th of each month in 2012. NOTE: This may exceed the maximum number of API calls under the trial plan, contact team@amentum.space for commercial access plans.
-
-    bash batch_run.sh
+Results are saved as PNG files in the data subdirectory.
     
 # Results
 
