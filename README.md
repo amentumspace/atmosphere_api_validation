@@ -5,7 +5,6 @@ This repository contains validation studies for the Atmosphere API available at 
 Each directory contains: 
 
 - a README.md file containing a description of the study, summary of findings, and instructions to run the Python code and re-generate the results
-- if applicable, files containing published experimental data for validation, or data calculated by alternative models for the purpose of benchmarking
 - images or profiles comparing values of atmospheric density or temperature obtained using the Atmosphere API alongside experimental results or predictions of other models.
 
 Feel free to add a validation study by creating a new branch and submitting a pull request. 

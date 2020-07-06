@@ -258,8 +258,8 @@ if __name__ == "__main__":
     # Obtain the hostname via command line argument (for on-premises deployment)
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--hostname",
-        dest="hostname",
+        "--host",
+        dest="host",
         action="store",
         help="specify an alternative hostname for testing (e.g. on-premises server)",
         default="https://atmosphere.amentum.space",
@@ -272,7 +272,7 @@ if __name__ == "__main__":
 
     # Hit the Amentum Atmosphere API to calculate total mass density according to NRLMSISE-00
 
-    endpoint = args.hostname + "/api/nrlmsise00"
+    endpoint = args.host + "/api/nrlmsise00"
 
     # assume midnight at Greenwich, arbitrary date
     payload = {

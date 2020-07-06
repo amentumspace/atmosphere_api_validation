@@ -10,27 +10,24 @@ from scipy import stats
 from requests_futures.sessions import FuturesSession
 
 """
-
 Comparing atmospheric density measured by GOCE to that predicted by 
 NRLMSISE00 and JB2008 models accessed via the Amentum Atmosphere API. 
-
 """
 
 # handle command line arguments
-
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--host",
     dest="host",
     action="store",
-    help="specify an alternative host for testing (e.g. on-premises)",
+    help="Alternative host for testing (e.g. on-premises API server)",
     default="https://atmosphere.amentum.space",
 )
 parser.add_argument(
     "--goce_file",
     dest="goce_file",
     action="store",
-    help="specify path to GOCE density and wind data time series (goce_denswind_ac082_v2_0_YYYY-MM.txt)",
+    help="Path to text file containing GOCE density and wind data time series (goce_denswind_ac082_v2_0_YYYY-MM.txt)",
     required=True,
 )
 
@@ -42,19 +39,24 @@ args = parser.parse_args()
 dirname = os.path.dirname(args.goce_file)
 basename = os.path.basename(args.goce_file)
 
-pickled_filename = dirname+basename.replace(".txt",".pkl")
+pickled_filename = dirname+"/"+basename.replace(".txt",".pkl")
 if os.path.isfile(pickled_filename):
+    print("found cached pickled dataframe")
     df_goce = pd.read_pickle(pickled_filename)
 else: 
 
     # otherwise read it in again
     df_goce = pd.read_csv(args.goce_file, sep="\s+", comment="#", header=None)
 
+    # reduce data by 
+    print("reducing number of datapoints by factor of 10")
+    df_goce = df_goce.iloc[::10, :]
+
     if len(df_goce) > 1e4:
         print(
-            "WARNING: requests to Amentum API will exceed quota. limiting to 10K datapoints"
+            "WARNING: requests to Amentum API will exceed quota. Contact team@amentum.space to discuss high volume access."
         )
-        df_goce = df_goce.iloc[:10000]
+    print(f"calculating atmospheric density for {df_goce.shape[0]} datapoints")
 
     df_goce.columns = [
         "date",
@@ -198,10 +200,16 @@ ax_prof.set_ylabel("Density " + r"$kgm^{-3}$")
 midlat_index = np.searchsorted(arg_lats, 180)
 arg_lat_of_interest = arg_lats[midlat_index]
 
-#  plot GOCE data
-ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index, :], label="GOCE", marker="D")
 
-# labels = [item.get_text() for item in ax_prof.get_xticklabels()]
+def format_func(value, tick_number):
+    """
+    Function to convert tick labels from seconds elapsed to 
+    day of date.
+    
+    """
+    return int(value / (24*60*60))
+
+ax_prof.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
 
 fig_prof.suptitle(
     "Median Density for AOL {}-{} deg".format(
@@ -210,17 +218,19 @@ fig_prof.suptitle(
     fontsize=12,
 )
 
-# initialise contour figure 
 
+#  plot GOCE data
+ax_prof.plot(tds[:-1], densities.statistic.T[midlat_index, :], label="GOCE", marker="None")
+
+# initialise contour figure 
 fig_cont, (ax_goce, ax_nrlmsise00, ax_jb2008) = plt.subplots(
     nrows=3, sharex=True, figsize=(8, 12)
 )
-fig_cont.suptitle(start_date.strftime("%B %Y"))
+# fig_cont.suptitle()
 
 images = []
 
 # plot 2D median density as measured by GOCE
-
 img = ax_goce.imshow(
     densities.statistic.T,
     extent=(start_date.day, stop_date.day, arg_lats.min(), arg_lats.max()),
@@ -235,18 +245,13 @@ images.append(img)
 
 ax_goce.set_ylabel("AOL, deg")
 ax_goce.set_yticks(np.arange(0, 360, 90))
-# ax_goce.set_xticks(np.arange(start_date.day, stop_date.day, 1))
 
 ax_goce.set_title("GOCE")
 
-markers = ["s", "o"]
-
 # Plot model data at same time stamp / argument of latitude coords
-
 for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
 
     ax_api = ax_nrlmsise00 if i == 0 else ax_jb2008
-
     ax_api.set_title(endpoint.upper())
 
     # Prepare 2D API density data for plotting
@@ -279,11 +284,11 @@ for i, endpoint in enumerate(["nrlmsise00", "jb2008"]):
         tds[:-1],
         densities_api.statistic.T[midlat_index, :],
         label=endpoint.upper(),
-        marker=markers[i],
+        marker="None",
     )
 
 # Set x labels on bottom plot only
-ax_api.set_xlabel("Day")
+ax_api.set_xlabel(start_date.strftime('%B %Y'))
 
 # Format colorbar axis
 cb = fig_cont.colorbar(
@@ -295,10 +300,11 @@ cb = fig_cont.colorbar(
 
 cb.set_label("Density " + r"$kgm^{-3}$")
 
-fig_cont.savefig(dirname+basename.replace(".txt","_cont.png"))
+fig_cont.savefig(dirname+"/"+basename.replace(".txt","_cont.png"))
 
 # draw the legend on the profile
 ax_prof.legend()
+ax_prof.set_xlim(left=0)
 
-fig_prof.savefig(dirname+basename.replace(".txt","_prof.png"))
+fig_prof.savefig(dirname+"/"+basename.replace(".txt","_prof.png"))
 
