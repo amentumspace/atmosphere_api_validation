@@ -6,7 +6,7 @@ The mission objectives demanded an unusually low altitude orbit with an electric
 
 GOCE's instruments also provided the world with valuable insights into the density and winds of the atmosphere. 
 
-The following study validates the NRLMSISE-00 and JB2008 endpoints of the Amentum API by comparing results of API calls with experimental data obtained during the GOCE mission. A 2D distribution of atmospheric mass density is calculated as a function of Argument of Latitude and number of days from a nominated start-date (see instructions below). A 1D time series of density versus days is calculated for a given interval of Argument of Latitude.
+The following study validates the NRLMSISE-00 and JB2008 endpoints of the Amentum API by comparing results of API calls with experimental data obtained during the GOCE mission. A 2D distribution of atmospheric mass density is calculated as a function of [Argument of Latitude](https://en.wikipedia.org/wiki/Argument_of_latitude) and day in the month. A 1D time series of density versus days is calculated for a given interval of Argument of Latitude.
 
 More information on the mission can be found [here](https://earth.esa.int/web/guest/missions/esa-eo-missions/goce/mission-summary). 
 
@@ -19,42 +19,36 @@ Install the required Python packages using pip like so
 # Run the analysis
 
     $ python analysis.py -h
-        usage: analysis.py [-h] [--hostname HOSTNAME][--start_date START_DATE][--goce_dir GOCE_DIR]
+        
+    usage: analysis.py [-h] [--host HOST] --goce_file GOCE_FILE
 
-        optional arguments:
-        -h, --help            show this help message and exit
-        --hostname HOSTNAME   specify an alternative hostname for testing (e.g. dedicated API server)
-        --start_date START_DATE specify the start date for the analysis as YYYYMMDD
-        --goce_dir GOCE_DIR   specify path to directory containing extracted goce data archive
+    optional arguments:
+    -h, --help            show this help message and exit
+    --host HOST           Alternative host for testing (e.g. on-premises API server)
+    --goce_file GOCE_FILE
+                            Path to text file containing GOCE density and wind data time series
+                            (goce_denswind_ac082_v2_0_YYYY-MM.txt)
 
-Results are saved as PNG files in the same directory.
 
-# Batch analysis
+Results are saved as PNG files in the same directory as the data files. 
 
-Generate validation plots for a 7 day period commencing on the 13th of each month in 2012. NOTE: This may exceed the maximum number of API calls under the trial plan, contact team@amentum.space for commercial access plans.
-
-    bash batch_run.sh
+There is a simple bash script to process all GOCE data files in the directory (`run.sh`).
     
 # Results
 
 A sample of results are provided below.
 
-Figure 1: Thermospheric density distributions as measured by GOCE, and as calculated by the NRLMSISE00 and JB2008 models accessed via the Amentum Aerospace API, for a week in June 2012.
 
-![](./Density_GOCE_vs_Models_20120613.png)
+![](./goce_denswind_ac082_v2_0_2012-04_cont.png)
 
+Figure 1: Thermospheric density distributions as measured by GOCE and calculated by the NRLMSISE00 and JB2008 models accessed via the Amentum Atmosphere API.
+
+![](./goce_denswind_ac082_v2_0_2012-04_prof.png)
 
 Figure 2: The time profile of density from Figure 1 at a given Argument of Latitude interval, measured and calculated.
 
-![](./Density_vs_API_AOL_180_20120613.png)
+# Acknowledgement 
 
+ESA GOCE Online Dissemination Service for provision of thermospheric density data, which is available for download [here](https://earth.esa.int/web/guest/missions/esa-operational-missions/goce/goce-thermospheric-data).
 
-# Data sources 
-
-See [here](https://earth.esa.int/web/guest/missions/esa-operational-missions/goce/goce-thermospheric-data ) for GOCE thermospheric density data used in this study, 
-
-[ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/](ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/tab/) for geomagnetic indices, and 
-
-[ftp://ftp.swpc.noaa.gov/pub/warehouse](ftp://ftp.swpc.noaa.gov/pub/warehouse) for radio flux data.
-
-Copyright 2019 [Amentum Aerospace](https://amentum.space), Australia
+Copyright 2020 [Amentum Aerospace](https://amentum.space), Australia.

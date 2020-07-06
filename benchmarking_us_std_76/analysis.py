@@ -258,8 +258,8 @@ if __name__ == "__main__":
     # Obtain the hostname via command line argument (for on-premises deployment)
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--hostname",
-        dest="hostname",
+        "--host",
+        dest="host",
         action="store",
         help="specify an alternative hostname for testing (e.g. on-premises server)",
         default="https://atmosphere.amentum.space",
@@ -272,7 +272,7 @@ if __name__ == "__main__":
 
     # Hit the Amentum Atmosphere API to calculate total mass density according to NRLMSISE-00
 
-    endpoint = args.hostname + "/api/nrlmsise00"
+    endpoint = args.host + "/api/nrlmsise00"
 
     # assume midnight at Greenwich, arbitrary date
     payload = {
@@ -282,11 +282,10 @@ if __name__ == "__main__":
         "geodetic_latitude": 51.47879,
         "geodetic_longitude": 0,
         "utc": 0,
-        "f107a": 150,  # nominal vals suggestewd by NRLMSISE-00 for alt < 80 km
-        "f107": 150,
-        "ap": 4,
         "altitude": 80,
     }
+    # values of radio flux, 81 day average of radio flux, and geomagnetic
+    # Ap index are automatically fetched from online sources by the API
 
     densities_api = []
     temps_api = []
@@ -298,7 +297,6 @@ if __name__ == "__main__":
             response = requests.get(endpoint, params=payload)
         except requests.exceptions.RequestException as e:
             print(e)
-            raise KeyboardInterrupt
         else:
             json_payload = response.json()
             densities_api.append(json_payload["total_mass_density"]["value"])  # [kg/m3]

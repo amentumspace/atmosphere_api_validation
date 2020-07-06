@@ -10,7 +10,7 @@ More information on the US Standard Atmosphere can be found in the original tech
 
 # Run time environment
 
-You can install the required Python packages using pip like so
+Install the required Python packages using pip like so
 
     pip install -r requirements.txt 
 
@@ -22,11 +22,11 @@ You can install the required Python packages using pip like so
 
 ![](./air_temperature_profile.png)
 
-Figure 1: Temperature profile for geometric altitudes less than 86 km as prediced by the US Standard Atmosphere (1976) and the NRLMSISE-00 model, accessed using the Amentum web API.  
+Figure 1: Temperature profile for geometric altitudes less than 86 km as prediced by the US Standard Atmosphere (1976) and the NRLMSISE-00 model.
 
  ![](./air_density_profile.png)
 
- Figure 2: Same as Figure 1 for atmospheric mass density.
+ Figure 2: Same as Figure 1 for mass density.
 
-Copyright 2019 [Amentum Aerospace](https://amentum.space), Australia
+Copyright 2020 [Amentum Aerospace](https://amentum.space), Australia.
 
