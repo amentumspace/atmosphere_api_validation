@@ -19,15 +19,15 @@ Install the required Python packages using pip like so
 # Run the analysis
 
     $ python analysis.py -h
-        
-    usage: analysis.py [-h] [--host HOST] --goce_file GOCE_FILE
+            
+    usage: analysis.py [-h] [--host HOST] --goce_file GOCE_FILE [--api_key API_KEY]
 
     optional arguments:
     -h, --help            show this help message and exit
     --host HOST           Alternative host for testing (e.g. on-premises API server)
     --goce_file GOCE_FILE
-                            Path to text file containing GOCE density and wind data time series
-                            (goce_denswind_ac082_v2_0_YYYY-MM.txt)
+                            Path to text file containing GOCE density and wind data time series (goce_denswind_ac082_v2_0_YYYY-MM.txt)
+    --api_key API_KEY     valid API key obtained from https://developer.amentum.io
 
 
 Results are saved as PNG files in the same directory as the data files. 

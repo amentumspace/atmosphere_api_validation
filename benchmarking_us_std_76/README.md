@@ -18,6 +18,13 @@ Install the required Python packages using pip like so
 
     python analysis.py
 
+    usage: analysis.py [-h] [--host HOST] [--api_key API_KEY]
+
+    optional arguments:
+    -h, --help         show this help message and exit
+    --host HOST        specify an alternative hostname for testing (e.g. on-premises server)
+    --api_key API_KEY  valid API key obtained from https://developer.amentum.io
+
 # Results
 
 ![](./air_temperature_profile.png)
@@ -28,5 +35,5 @@ Figure 1: Temperature profile for geometric altitudes less than 86 km as predice
 
  Figure 2: Same as Figure 1 for mass density.
 
-Copyright 2020 [Amentum Aerospace](https://amentum.space), Australia.
+Copyright 2021 [Amentum Aerospace](https://amentum.space), Australia.
 
