@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import requests
+import sys
 
 # Define constants
 
@@ -15,7 +16,7 @@ R_g = 8.31432  # [J/mol/K]
 # radius of the earth
 r_0 = 6356.776 * 1e3  # m
 
-def CalcGeopotentialHeight(Z):
+def calc_geopotential_height(geometric_height):
     """
     Calculate geoptential height from geometric height
 
@@ -24,17 +25,17 @@ def CalcGeopotentialHeight(Z):
     Returns - geopotential height in m as float 
 
     """
-    return (r_0 * Z) / (r_0 + Z)
+    return (r_0 * geometric_height) / (r_0 + geometric_height)
 
-def CalcTemp(delta_H, T_0, Lapse):
+def calc_temp(delta_h, t_0, lapse):
     """
     Calculates atmospheric temperature assuming constant lapse rate
     
     Args
     
-    delta_H - difference in geopotential heights between layers in m
-    T_0 - base temperature of previous layer in K
-    Lapse - lapse rate in K/m 
+    delta_h - difference in geopotential heights between layers in m
+    t_0 - base temperature of previous layer in K
+    lapse - lapse rate in K/m 
     
     Return 
     
@@ -42,20 +43,20 @@ def CalcTemp(delta_H, T_0, Lapse):
     
     """
 
-    return T_0 + Lapse * delta_H
+    return t_0 + lapse * delta_h
 
 
 # Function to calculate pressure
-def CalcPressure(delta_H, T_0, P_0, Lapse):
+def calc_pressure(delta_h, t_0, p_0, lapse):
     """
     Calculates the atmospheric pressure 
         
     Args
     
-    delta_H - difference in geopotential heights between layers in m
-    T_0 - base temperature of previous layer in K
-    P_0 - base pressure of previous layer in Pa
-    Lapse - lapse rate in K/m 
+    delta_h - difference in geopotential heights between layers in m
+    t_0 - base temperature of previous layer in K
+    p_0 - base pressure of previous layer in Pa
+    lapse - lapse rate in K/m 
     
     Return 
     
@@ -65,12 +66,12 @@ def CalcPressure(delta_H, T_0, P_0, Lapse):
     result = None
 
     try:
-        if Lapse == 0:
+        if lapse == 0:
             # We have exponential solution to the equation
-            result = P_0 * np.exp(-(g_0 * M_da * delta_H) / (R_g * T_0))
+            result = p_0 * np.exp(-(g_0 * M_da * delta_h) / (R_g * t_0))
         else:
-            result = P_0 * np.power(
-                (1 + Lapse * delta_H / T_0), -(g_0 * M_da) / (R_g * Lapse)
+            result = p_0 * np.power(
+                (1 + lapse * delta_h / t_0), -(g_0 * M_da) / (R_g * lapse)
             )
 
     except RuntimeError as err:
@@ -100,13 +101,13 @@ tropopause = {
     "altitude": 11.0 * 1e3,  # [m]
     "lapse": 0.0,  # [K/m]
 }
-tropopause["geopotential"] = CalcGeopotentialHeight(tropopause["altitude"])  # [m]
-tropopause["temp"] = CalcTemp(
+tropopause["geopotential"] = calc_geopotential_height(tropopause["altitude"])  # [m]
+tropopause["temp"] = calc_temp(
     tropopause["geopotential"] - troposphere["geopotential"],
     troposphere["temp"],
     troposphere["lapse"],
 )
-tropopause["pressure"] = CalcPressure(
+tropopause["pressure"] = calc_pressure(
     tropopause["geopotential"] - troposphere["geopotential"],
     troposphere["temp"],
     troposphere["pressure"],
@@ -119,11 +120,11 @@ mid_stratosphere = {
     "altitude": 20.0 * 1e3,  # [m]
     "lapse": 1.0 * 1e-3,  # [K/m]
 }
-mid_stratosphere["geopotential"] = CalcGeopotentialHeight(
+mid_stratosphere["geopotential"] = calc_geopotential_height(
     mid_stratosphere["altitude"]
 )  # [m]
 mid_stratosphere["temp"] = tropopause["temp"]  # no change in previous layer
-mid_stratosphere["pressure"] = CalcPressure(
+mid_stratosphere["pressure"] = calc_pressure(
     mid_stratosphere["geopotential"] - tropopause["geopotential"],
     tropopause["temp"],
     tropopause["pressure"],
@@ -136,15 +137,15 @@ upper_stratosphere = {
     "altitude": 32.0 * 1e3,  # [m]
     "lapse": 2.8 * 1e-3,  # [K/m]
 }
-upper_stratosphere["geopotential"] = CalcGeopotentialHeight(
+upper_stratosphere["geopotential"] = calc_geopotential_height(
     upper_stratosphere["altitude"]
 )  # [m]
-upper_stratosphere["temp"] = CalcTemp(
+upper_stratosphere["temp"] = calc_temp(
     upper_stratosphere["geopotential"] - mid_stratosphere["geopotential"],
     mid_stratosphere["temp"],
     mid_stratosphere["lapse"],
 )
-upper_stratosphere["pressure"] = CalcPressure(
+upper_stratosphere["pressure"] = calc_pressure(
     upper_stratosphere["geopotential"] - mid_stratosphere["geopotential"],
     mid_stratosphere["temp"],
     mid_stratosphere["pressure"],
@@ -157,13 +158,13 @@ stratopause = {
     "altitude": 47.0 * 1e3,  # [m]
     "lapse": 0.0 * 1e-3,  # [K/m]
 }
-stratopause["geopotential"] = CalcGeopotentialHeight(stratopause["altitude"])  # [m]
-stratopause["temp"] = CalcTemp(
+stratopause["geopotential"] = calc_geopotential_height(stratopause["altitude"])  # [m]
+stratopause["temp"] = calc_temp(
     stratopause["geopotential"] - upper_stratosphere["geopotential"],
     upper_stratosphere["temp"],
     upper_stratosphere["lapse"],
 )
-stratopause["pressure"] = CalcPressure(
+stratopause["pressure"] = calc_pressure(
     stratopause["geopotential"] - upper_stratosphere["geopotential"],
     upper_stratosphere["temp"],
     upper_stratosphere["pressure"],
@@ -176,11 +177,11 @@ mid_mesosphere = {
     "altitude": 51.0 * 1e3,  # [m]
     "lapse": -2.8 * 1e-3,  # [K/m]
 }
-mid_mesosphere["geopotential"] = CalcGeopotentialHeight(
+mid_mesosphere["geopotential"] = calc_geopotential_height(
     mid_mesosphere["altitude"]
 )  # [m]
 mid_mesosphere["temp"] = stratopause["temp"]  # no change in previous layer
-mid_mesosphere["pressure"] = CalcPressure(
+mid_mesosphere["pressure"] = calc_pressure(
     mid_mesosphere["geopotential"] - stratopause["geopotential"],
     stratopause["temp"],
     stratopause["pressure"],
@@ -193,15 +194,15 @@ upper_mesosphere = {
     "altitude": 71.0 * 1e3,  # [m]
     "lapse": -2.0 * 1e-3,  # [K/m]
 }
-upper_mesosphere["geopotential"] = CalcGeopotentialHeight(
+upper_mesosphere["geopotential"] = calc_geopotential_height(
     upper_mesosphere["altitude"]
 )  # [m]
-upper_mesosphere["temp"] = CalcTemp(
+upper_mesosphere["temp"] = calc_temp(
     upper_mesosphere["geopotential"] - mid_mesosphere["geopotential"],
     mid_mesosphere["temp"],
     mid_mesosphere["lapse"],
 )
-upper_mesosphere["pressure"] = CalcPressure(
+upper_mesosphere["pressure"] = calc_pressure(
     upper_mesosphere["geopotential"] - mid_mesosphere["geopotential"],
     mid_mesosphere["temp"],
     mid_mesosphere["pressure"],
@@ -210,7 +211,7 @@ upper_mesosphere["pressure"] = CalcPressure(
 layers.append(upper_mesosphere)
 
 
-def SampleUSStdAtmosphere(Z):
+def sample_us_std_atmosphere(geometric_height):
     """
     Calculates air temperature, pressure and density 
     assuming ideal gas law and constant lapse rates
@@ -227,22 +228,22 @@ def SampleUSStdAtmosphere(Z):
     current_layer = None
     # identify which layer we're in , search in reverse order
     for layer in layers[::-1]:
-        if Z >= layer["altitude"]:
-            print("altitude {} is in layer {}".format(Z, layer["name"]))
+        if geometric_height >= layer["altitude"]:
+            print(f"altitude {geometric_height} is in layer {layer['name']}")
             current_layer = layer
             break
 
     if current_layer is None:
-        raise ValueError("Did not find layer for altitude {} m".format(Z))
+        raise ValueError(f"Did not find layer for altitude {geometric_height} m")
 
     # calculate geopotential height different
-    delta_H = CalcGeopotentialHeight(Z) - layer["geopotential"]
+    delta_h = calc_geopotential_height(geometric_height) - layer["geopotential"]
 
     # calculate temp and pressure according to layers and lapse rates
-    pressure = CalcPressure(
-        delta_H, layer["temp"], layer["pressure"], layer["lapse"]
+    pressure = calc_pressure(
+        delta_h, layer["temp"], layer["pressure"], layer["lapse"]
     )
-    temp = CalcTemp(delta_H, layer["temp"], layer["lapse"])
+    temp = calc_temp(delta_h, layer["temp"], layer["lapse"])
 
     # calculate density according ideal gas law
     try:
@@ -262,7 +263,14 @@ if __name__ == "__main__":
         dest="host",
         action="store",
         help="specify an alternative hostname for testing (e.g. on-premises server)",
-        default="https://atmosphere.amentum.space",
+        default="https://atmosphere.amentum.io",
+    )
+    parser.add_argument(
+        "--api_key",
+        dest="api_key",
+        action="store",
+        help="valid API key obtained from https://developer.amentum.io",
+        default=""    
     )
     args = parser.parse_args()
 
@@ -273,6 +281,10 @@ if __name__ == "__main__":
     # Hit the Amentum Atmosphere API to calculate total mass density according to NRLMSISE-00
 
     endpoint = args.host + "/api/nrlmsise00"
+
+    headers = {
+        "API-Key" : args.api_key
+    }
 
     # assume midnight at Greenwich, arbitrary date
     payload = {
@@ -294,9 +306,15 @@ if __name__ == "__main__":
         # Update altitude dict entry
         payload["altitude"] = alt / 1e3  # km
         try:
-            response = requests.get(endpoint, params=payload)
+            response = requests.get(endpoint, params=payload, headers=headers)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e: 
+            print(response.status_code, response.reason, e.args)
+            print("Check you have a valid API Key and are subscribed to this service https://developer.amentum.io")
+            sys.exit(1)
         except requests.exceptions.RequestException as e:
             print(e)
+            sys.exit(1)
         else:
             json_payload = response.json()
             densities_api.append(json_payload["total_mass_density"]["value"])  # [kg/m3]
@@ -305,13 +323,13 @@ if __name__ == "__main__":
     # Now calculate values based on the US Standard Atmosphere 1976
 
     # Calc quantities as list of tuples
-    data_pts = np.array([SampleUSStdAtmosphere(alt) for alt in altitudes])
+    data_pts = np.array([sample_us_std_atmosphere(alt) for alt in altitudes])
 
     # Isolate quantities as lists
     temperatures = data_pts.T[0]
     pressures = data_pts.T[1]
     densities = data_pts.T[2]
-    geopotential_alts = np.array([CalcGeopotentialHeight(alt) for alt in altitudes])
+    geopotential_alts = np.array([calc_geopotential_height(alt) for alt in altitudes])
 
     # now plot the air density profiles
 
@@ -393,8 +411,6 @@ if __name__ == "__main__":
         label="US Std",
     )
 
-    # plt.xlim(left = 160)
-    # plt.xlim(right = 300)
     plt.ylim(bottom=0)
     plt.ylim(top=90)
     ax.grid()
