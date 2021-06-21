@@ -30,6 +30,13 @@ parser.add_argument(
     help="Path to text file containing GOCE density and wind data time series (goce_denswind_ac082_v2_0_YYYY-MM.txt)",
     required=True,
 )
+parser.add_argument(
+    "--api_key",
+    dest="api_key",
+    action="store",
+    help="valid API key obtained from https://developer.amentum.io",
+    default=""    
+)
 
 args = parser.parse_args()
 
@@ -108,8 +115,11 @@ else:
             "day": row["datetime"].day,
             "utc": row["datetime"].hour + row["datetime"].minute / 60,  # decimal UTC hour
         }
+        headers = {
+            "API-Key" : args.api_key
+        }
 
-        return session.get(url, params=payload)
+        return session.get(url, params=payload, headers=headers)
 
     def process_futures_request(future):
         """
