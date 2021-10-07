@@ -11,22 +11,12 @@ Feel free to add a validation study by creating a new branch and submitting a pu
 
 ## Retrieving an API Key
 
-You will need to register for an Amentum API Account [here](https://developer.amentum.io). Once you confirm your email, generate an API under the `Settings` page, then subscribe to the `wmm` (World Magnetic Model) endpoint under the `Subscriptions` page. 
+You will need to register for an Amentum API Account [here](https://developer.amentum.io). Once you confirm your email, generate an API Key under the `Settings` page, then subscribe to the `jb2008` and `nrlmsise00` endpoints under the `Subscriptions` page. 
 
 **Note** these studies perform a large number of API calls, so please be mindful of your quota. 
 
 # Running the analyses
 
-See the analysis.py script in each directory to see how the Amentum Atmosphere API was used to retrieve density and temperature values from the NRLMSISE-00 model, as well as the Python code to fetch and process validation data from experimental measurements, or benchmarking data from another model.
+Follow instructions in the README.md files in the subdirectories.
 
-Install the required Python packages using pip like so
-
-    pip install -r requirements.txt 
-
-Then run the script using the following command
-
-    python analysis.py 
-
-That will produce results as PNG files in the same directory. 
-
-Copyright 2020 [Amentum Aerospace](https://amentum.space), Australia.
+Copyright 2021 [Amentum Aerospace](https://amentum.space), Australia.

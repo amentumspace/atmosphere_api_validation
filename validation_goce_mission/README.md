@@ -51,4 +51,4 @@ Figure 2: The time profile of density from Figure 1 at a given Argument of Latit
 
 ESA GOCE Online Dissemination Service for provision of thermospheric density data, which is available for download [here](https://earth.esa.int/web/guest/missions/esa-operational-missions/goce/goce-thermospheric-data).
 
-Copyright 2020 [Amentum Aerospace](https://amentum.space), Australia.
+Copyright 2021 [Amentum Aerospace](https://amentum.space), Australia.
